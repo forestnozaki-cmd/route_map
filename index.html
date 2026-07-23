@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer-when-downgrade">
+  <title>国土地理院地図 A3-3枚配置</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    /* 画面表示および印刷設定 */
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0;
+      font-family: sans-serif;
+    }
+
+    /* A3サイズの用紙枠（横向き: 420mm x 297mm） */
+    .a3-page {
+      width: 420mm;
+      height: 297mm;
+      background-color: white;
+      margin: 0 auto;
+      padding: 15mm;
+      box-sizing: border-box;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+
+      /* 3つの枠を横並びにする設定 */
+      display: flex;
+      gap: 10mm;
+    }
+
+    /* 各地図を包む枠 */
+    .map-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #999;
+    }
+
+    /* キャプション（見出し）部分 */
+    .map-title {
+      background-color: #333;
+      color: white;
+      padding: 8px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14pt;
+    }
+
+    /* 地図描画エリア */
+    .map-box {
+      flex: 1;
+      width: 100%;
+    }
+
+    /* 印刷時の用紙設定 */
+    @page {
+      size: A3 landscape;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: none;
+        padding: 0;
+      }
+      .a3-page {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- A3サイズの用紙コンテナ -->
+  <div class="a3-page">
+    
+    <!-- 1枚目：広域 -->
+    <div class="map-container">
+      <div class="map-title">広域図 (ズーム: 10)</div>
+      <div id="map1" class="map-box"></div>
+    </div>
+
+    <!-- 2枚目：中域 -->
+    <div class="map-container">
+      <div class="map-title">中域図 (ズーム: 13)</div>
+      <div id="map2" class="map-box"></div>
+    </div>
+
+    <!-- 3枚目：詳細 -->
+    <div class="map-container">
+      <div class="map-title">詳細図 (ズーム: 16)</div>
+      <div id="map3" class="map-box"></div>
+    </div>
+
+  </div>
+
+  <!-- Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <script>
+    // 1. 中心となる位置の設定（例: 東京駅 緯度35.681236, 経度139.767125）
+    const centerLat = 35.681236;
+    const centerLng = 139.767125;
+
+    // 2. 国土地理院タイルのURLパターン（標準地図）
+    const gsiTileUrl = 'https://cyberjapandamapp.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
+    const gsiAttribution = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>';
+
+    // 3. 各枠に地図を初期化してタイルを読み込む関数
+    function createGsiMap(elementId, zoomLevel) {
+      // 地図オブジェクトを作成
+      const map = L.map(elementId).setView([centerLat, centerLng], zoomLevel);
+
+      // 国土地理院タイルレイヤーを追加
+      L.tileLayer(gsiTileUrl, {
+        attribution: gsiAttribution,
+        maxZoom: 18,
+        minZoom: 5
+      }).addTo(map);
+
+      // 中心点に赤いマーカーを設置（不要な場合は削除可能）
+      L.marker([centerLat, centerLng]).addTo(map);
+
+      return map;
+    }
+
+    // 4. それぞれの枠（map1, map2, map3）に異なるズームレベルで描画
+    createGsiMap('map1', 10); // 広域
+    createGsiMap('map2', 13); // 中域
+    createGsiMap('map3', 16); // 詳細
+  </script>
+
+</body>
+</html>
