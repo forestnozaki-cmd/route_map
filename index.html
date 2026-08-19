@@ -344,14 +344,17 @@
     map2.on('move zoom', updateRedFrame2on1);
     map3.on('move zoom', updateRedFrame3on2);
 
-    // 9. 国土地理院 住所検索APIを利用した検索処理
+    // 9. 国土地理院 住所検索APIを利用した検索処理（CORSエラー回避プロキシ付き）
     async function doAddressSearch() {
       const query = document.getElementById('searchInput').value.trim();
       if (!query) return;
 
       try {
-        const url = `https://msearch.gsi.go.jp/address-search-api/msearch/search?q=${encodeURIComponent(query)}`;
-        const response = await fetch(url);
+        const gsiApiUrl = `https://msearch.gsi.go.jp/address-search-api/msearch/search?q=${encodeURIComponent(query)}`;
+        // CORS回避プロキシを経由して通信
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(gsiApiUrl)}`;
+
+        const response = await fetch(proxyUrl);
         const data = await response.json();
 
         if (data && data.length > 0) {
