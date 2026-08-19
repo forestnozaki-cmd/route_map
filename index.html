@@ -82,6 +82,11 @@
       background-color: #0056b3;
     }
 
+    .search-button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+
     /* キャプション（見出し）部分 */
     .map-title {
       background-color: #333;
@@ -163,10 +168,7 @@
     
     <!-- 1枚目：広域図 -->
     <div class="map-container">
-      <!-- 高さを揃えるための上部空欄スペーサー -->
       <div class="map-top-area"></div>
-      
-      <!-- 黒塗りタイトルバー -->
       <div class="map-title">
         <span>広域図</span>
         <div class="map-scale-container">
@@ -179,10 +181,7 @@
 
     <!-- 2枚目：中域図 -->
     <div class="map-container">
-      <!-- 高さを揃えるための上部空欄スペーサー -->
       <div class="map-top-area"></div>
-      
-      <!-- 黒塗りタイトルバー -->
       <div class="map-title">
         <span>中域図</span>
         <div class="map-scale-container">
@@ -195,15 +194,12 @@
 
     <!-- 3枚目：近隣地図 -->
     <div class="map-container">
-      <!-- タイトルバー上部の検索バーエリア（周囲塗りつぶしなし） -->
       <div class="map-top-area">
         <div class="search-box">
-          <input type="text" id="searchInput" class="search-input" placeholder="住所・地番を入力（例: 東京都千代田区1-1）">
+          <input type="text" id="searchInput" class="search-input" placeholder="住所・地番を入力（例: 茅野市宮川 や 長野県茅野市1-1）">
           <button id="searchBtn" class="search-button">検索</button>
         </div>
       </div>
-
-      <!-- 黒塗りタイトルバー -->
       <div class="map-title">
         <span>近隣地図</span>
         <div class="map-scale-container">
@@ -344,34 +340,73 @@
     map2.on('move zoom', updateRedFrame2on1);
     map3.on('move zoom', updateRedFrame3on2);
 
-    // 9. 国土地理院 住所検索APIを利用した検索処理（CORSエラー回避プロキシ付き）
+    // 9. 高速・高精度な住所検索処理（地理院API ＋ 自動フォールバック機能付き）
     async function doAddressSearch() {
       const query = document.getElementById('searchInput').value.trim();
       if (!query) return;
 
+      const btn = document.getElementById('searchBtn');
+      btn.textContent = '検索中...';
+      btn.disabled = true;
+
+      let lat = null;
+      let lng = null;
+
       try {
-        const gsiApiUrl = `https://msearch.gsi.go.jp/address-search-api/msearch/search?q=${encodeURIComponent(query)}`;
-        // CORS回避プロキシを経由して通信
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(gsiApiUrl)}`;
+        // 【ステップ1】 国土地理院 APIで検索（直接通信）
+        try {
+          const gsiUrl = `https://msearch.gsi.go.jp/address-search-api/msearch/search?q=${encodeURIComponent(query)}`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒でタイムアウト判定
 
-        const response = await fetch(proxyUrl);
-        const data = await response.json();
+          const response = await fetch(gsiUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
 
-        if (data && data.length > 0) {
-          const lng = data[0].geometry.coordinates[0];
-          const lat = data[0].geometry.coordinates[1];
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.length > 0 && data[0].geometry) {
+              lng = data[0].geometry.coordinates[0];
+              lat = data[0].geometry.coordinates[1];
+            }
+          }
+        } catch (e) {
+          console.warn('国土地理院APIからの応答なし。代替検索を実行します。', e);
+        }
 
+        // 【ステップ2】 国土地理院でヒットしなかった場合のバックアップ（OpenStreetMap API）
+        if (!lat || !lng) {
+          try {
+            const osmUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=jp`;
+            const response = await fetch(osmUrl);
+            if (response.ok) {
+              const data = await response.json();
+              if (data && data.length > 0) {
+                lat = parseFloat(data[0].lat);
+                lng = parseFloat(data[0].lon);
+              }
+            }
+          } catch (e) {
+            console.warn('OSM API検索エラー:', e);
+          }
+        }
+
+        // 【ステップ3】 検索結果の画面反映
+        if (lat && lng) {
           [map1, map2, map3].forEach(map => map.setView([lat, lng]));
           [marker1, marker2, marker3].forEach(marker => marker.setLatLng([lat, lng]));
 
           updateRedFrame2on1();
           updateRedFrame3on2();
         } else {
-          alert('該当する住所・地番が見つかりませんでした。入力内容をご確認ください。');
+          alert('該当する住所・地番が見つかりませんでした。\n「長野県茅野市宮川」のように都道府県名から入力するか、町名まででお試しください。');
         }
+
       } catch (error) {
         console.error('Search error:', error);
-        alert('住所検索中にエラーが発生しました。');
+        alert('検索処理中にエラーが発生しました。ネットワーク接続をご確認ください。');
+      } finally {
+        btn.textContent = '検索';
+        btn.disabled = false;
       }
     }
 
