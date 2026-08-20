@@ -44,7 +44,9 @@
       padding: 4px;
       box-sizing: border-box;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      gap: 6px;
+      justify-content: flex-end;
       background-color: transparent;
       border: 1px solid #ffffff;
       margin-bottom: 2px;
@@ -113,6 +115,25 @@
 
     .toggle-map-button:hover {
       background-color: #e06d10;
+    }
+
+    /* 土地名称入力エリア */
+    .site-name-box {
+      width: 100%;
+    }
+
+    .site-name-input {
+      width: 100%;
+      padding: 5px 8px;
+      font-size: 11pt;
+      font-weight: bold;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      background-color: #fff;
+      color: #333;
+      box-sizing: border-box;
+      text-align: right; /* 右寄せに設定 */
     }
 
     /* キャプション（見出し）部分 */
@@ -205,6 +226,15 @@
       .search-box {
         display: none;
       }
+      .site-name-input {
+        border: none;
+        background: transparent;
+        color: #000000;
+        font-size: 12pt;
+        font-weight: bold;
+        padding: 0;
+        text-align: right; /* 印刷時も右寄せ */
+      }
       .compass-icon {
         background: transparent;
         box-shadow: none;
@@ -248,7 +278,15 @@
     
     <!-- 1枚目：広域図 -->
     <div class="map-container">
-      <div class="map-top-area"></div>
+      <div class="map-top-area">
+        <div class="search-box" style="visibility: hidden;">
+          <input type="text" class="search-input">
+          <button class="search-button">検索</button>
+        </div>
+        <div class="site-name-box" style="visibility: hidden;">
+          <input type="text" class="site-name-input">
+        </div>
+      </div>
       <div class="map-main-body">
         <div class="map-title">
           <span>広域図</span>
@@ -265,7 +303,15 @@
 
     <!-- 2枚目：中域図 -->
     <div class="map-container">
-      <div class="map-top-area"></div>
+      <div class="map-top-area">
+        <div class="search-box" style="visibility: hidden;">
+          <input type="text" class="search-input">
+          <button class="search-button">検索</button>
+        </div>
+        <div class="site-name-box" style="visibility: hidden;">
+          <input type="text" class="site-name-input">
+        </div>
+      </div>
       <div class="map-main-body">
         <div class="map-title">
           <span>中域図</span>
@@ -287,6 +333,9 @@
           <input type="text" id="searchInput" class="search-input" placeholder="住所・地番を入力（例: 茅野市宮川）">
           <button id="searchBtn" class="search-button">検索</button>
           <button id="toggleMapBtn" class="toggle-map-button">OpenStreetMapに切り替え</button>
+        </div>
+        <div class="site-name-box">
+          <input type="text" id="siteNameInput" class="site-name-input" placeholder="土地名称を入力（例: 〇〇様邸 建設予定地）">
         </div>
       </div>
       <div class="map-main-body">
@@ -353,16 +402,12 @@
         zoomDelta: 0.1
       }).setView([centerLat, centerLng], initialZoom);
 
-      // maxNativeZoom: 地図データ自体の限界ズーム値（国土地理院は18）
-      // maxZoom: 画面上拡大を許可する限界ズーム値（22まで拡大可能とし画像を引き伸ばして表示）
       const tileLayer = L.tileLayer(gsiTileUrl, {
         attribution: gsiAttribution,
         maxNativeZoom: 18,
         maxZoom: 22,
         minZoom: 5
       }).addTo(map);
-
-      const marker = L.marker([centerLat, centerLng]).addTo(map);
 
       updateInputField(map, inputId);
 
@@ -386,7 +431,7 @@
         }
       });
 
-      return { map, marker, tileLayer };
+      return { map, tileLayer };
     }
 
     // 7. それぞれの枠を描画
@@ -394,9 +439,9 @@
     const obj2 = createGsiMap('map2', 'scaleInput2', 7500);  // 中域図
     const obj3 = createGsiMap('map3', 'scaleInput3', 2000);  // 近隣地図
 
-    const map1 = obj1.map, marker1 = obj1.marker;
-    const map2 = obj2.map, marker2 = obj2.marker;
-    const map3 = obj3.map, marker3 = obj3.marker;
+    const map1 = obj1.map;
+    const map2 = obj2.map;
+    const map3 = obj3.map;
 
     // 8. 表示範囲の赤枠描画処理
     let redFrame2on1 = null;
@@ -489,7 +534,6 @@
 
         if (lat && lng) {
           [map1, map2, map3].forEach(map => map.setView([lat, lng]));
-          [marker1, marker2, marker3].forEach(marker => marker.setLatLng([lat, lng]));
 
           updateRedFrame2on1();
           updateRedFrame3on2();
@@ -528,7 +572,7 @@
         });
         currentMapType = 'osm';
         btn.textContent = '地理院地図に切り替え';
-        btn.style.backgroundColor = '#17a2b8'; // 青緑色に変更
+        btn.style.backgroundColor = '#17a2b8';
       } else {
         // 全ての地図を 地理院地図 に変更（地理院の最大NativeZoomは18）
         [obj1, obj2, obj3].forEach(obj => {
@@ -539,10 +583,9 @@
         });
         currentMapType = 'gsi';
         btn.textContent = 'OpenStreetMapに切り替え';
-        btn.style.backgroundColor = '#fd7e14'; // オレンジ色に変更
+        btn.style.backgroundColor = '#fd7e14';
       }
 
-      // 切り替え直後に3つの地図の表示領域を再計算・タイルの強制再描画を行う（欠損・非表示を防止）
       setTimeout(function() {
         [obj1, obj2, obj3].forEach(obj => {
           obj.map.invalidateSize();
