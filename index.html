@@ -71,8 +71,8 @@
 
     .search-input {
       flex: 1;
-      padding: 5px 8px;
-      font-size: 10pt;
+      padding: 4px 8px;
+      font-size: 9.5pt;
       border: 1px solid #ccc;
       border-radius: 4px;
       outline: none;
@@ -81,8 +81,8 @@
     }
 
     .search-button {
-      padding: 5px 10px;
-      font-size: 10pt;
+      padding: 4px 8px;
+      font-size: 9pt;
       background-color: #007bff;
       color: white;
       border: none;
@@ -106,8 +106,8 @@
 
     .prefix-input {
       width: 75px;
-      padding: 5px 4px;
-      font-size: 11pt;
+      padding: 3px 4px;
+      font-size: 10pt;
       font-weight: bold;
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -121,8 +121,8 @@
     .site-name-input {
       flex: 1;
       max-width: 220px;
-      padding: 5px 8px;
-      font-size: 11pt;
+      padding: 3px 8px;
+      font-size: 10pt;
       font-weight: bold;
       border: 1px solid #ccc;
       border-radius: 4px;
@@ -130,7 +130,7 @@
       background-color: #fff;
       color: #333;
       box-sizing: border-box;
-      text-align: right;
+      text-align: left;
     }
 
     /* キャプション（見出し）部分 */
@@ -191,6 +191,13 @@
       flex: 1;
       width: 100%;
       position: relative;
+    }
+
+    /* 作図モード中のカーソルスタイル */
+    .map-box.drawing-mode,
+    .map-box.drawing-mode .leaflet-container,
+    .map-box.drawing-mode .leaflet-interactive {
+      cursor: crosshair !important;
     }
 
     .compass-icon {
@@ -295,53 +302,51 @@
         font-size: 12pt !important;
         font-weight: bold !important;
         padding: 0 !important;
-        text-align: right;
       }
-      .prefix-input { width: auto !important; }
-      .site-name-input { width: auto !important; }
+      .prefix-input { width: auto !important; text-align: right !important; }
+      .site-name-input { width: auto !important; text-align: left !important; }
       .compass-icon { background: transparent; box-shadow: none; }
-      /* 印刷時に拡大調整ボタンを非表示 */
       .leaflet-control-zoom { display: none !important; }
     }
   </style>
 </head>
 <body>
 
-  <!-- 方位マーク用SVG -->
+  <!-- SVG定義（方位マーク） -->
   <svg style="display:none;">
-    <g id="north-compass">
-      <svg viewBox="0 0 100 120" width="100%" height="100%">
-        <text x="50" y="21" font-family="sans-serif" font-weight="bold" font-size="22" text-anchor="middle" fill="#000">N</text>
-        <g transform="translate(50,72)">
-          <circle cx="0" cy="0" r="38" fill="none" stroke="#000" stroke-width="1.2"/>
-          <circle cx="0" cy="0" r="28" fill="none" stroke="#000" stroke-width="0.8"/>
-          <polygon points="0,0 0,-42 -7,-6" fill="#000"/>
-          <polygon points="0,0 0,-42 7,-6" fill="#fff" stroke="#000" stroke-width="0.8"/>
-          <polygon points="0,0 0,42 7,-6" fill="#000"/>
-          <polygon points="0,0 0,42 -7,-6" fill="#fff" stroke="#000" stroke-width="0.8"/>
-          <polygon points="0,0 42,0 6,-7" fill="#000"/>
-          <polygon points="0,0 42,0 6,7" fill="#fff" stroke="#000" stroke-width="0.8"/>
-          <polygon points="0,0 -42,0 -6,7" fill="#000"/>
-          <polygon points="0,0 -42,0 -6,-7" fill="#fff" stroke="#000" stroke-width="0.8"/>
-        </g>
-      </svg>
-    </g>
+    <defs>
+      <g id="north-compass">
+        <svg viewBox="0 0 100 120" width="100%" height="100%">
+          <text x="50" y="21" font-family="sans-serif" font-weight="bold" font-size="22" text-anchor="middle" fill="#000">N</text>
+          <g transform="translate(50,72)">
+            <circle cx="0" cy="0" r="38" fill="none" stroke="#000" stroke-width="1.2"/>
+            <circle cx="0" cy="0" r="28" fill="none" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 0,-42 -7,-6" fill="#000"/>
+            <polygon points="0,0 0,-42 7,-6" fill="#fff" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 0,42 7,-6" fill="#000"/>
+            <polygon points="0,0 0,42 -7,-6" fill="#fff" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 42,0 6,-7" fill="#000"/>
+            <polygon points="0,0 42,0 6,7" fill="#fff" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 -42,0 -6,7" fill="#000"/>
+            <polygon points="0,0 -42,0 -6,-7" fill="#fff" stroke="#000" stroke-width="0.8"/>
+          </g>
+        </svg>
+      </g>
+    </defs>
   </svg>
 
   <div class="a3-page">
     
-    <!-- 1枚目：広域図（ポインタ & データ操作パネル） -->
+    <!-- 1枚目：広域図 -->
     <div class="map-container">
       <div class="map-top-area">
         <div class="panel-control-container">
-          <!-- 1行目: データ操作ボタン -->
           <div class="panel-control-row" style="gap: 4px;">
             <button id="btnReset" class="action-btn btn-reset">RESET</button>
             <button id="btnSave" class="action-btn btn-save">SAVE</button>
             <button id="btnLoad" class="action-btn btn-load">LOAD</button>
             <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
           </div>
-          <!-- 2行目: ポインタ形状・色 -->
           <div class="panel-control-row">
             <label><b>ポインタ</b> 形状:
               <select id="ptrShape" style="font-size:8pt;">
@@ -359,7 +364,6 @@
               </select>
             </label>
           </div>
-          <!-- 3行目: 文字表示・テキスト・サイズ -->
           <div class="panel-control-row">
             <label><input type="checkbox" id="ptrShowText" checked> 文字表示:</label>
             <input type="text" id="ptrText" placeholder="名称" style="width:65px; font-size:8pt; padding:2px;">
@@ -387,7 +391,7 @@
       </div>
     </div>
 
-    <!-- 2枚目：中域図（CAD操作パネル） -->
+    <!-- 2枚目：中域図 -->
     <div class="map-container">
       <div class="cad-panel-area">
         <div class="panel-control-container">
@@ -405,6 +409,7 @@
               </select>
             </label>
             <label>図面: <input type="file" id="cadFileInput" accept="image/png, image/jpeg" style="width:110px;"></label>
+            <button class="cad-btn" id="resetCad" style="background:#dc3545; display:none;">消去</button>
           </div>
 
           <div id="cadControls" class="panel-control-row" style="display:none;">
@@ -435,8 +440,8 @@
             </div>
 
             <label>倍率: 
-              <input type="range" id="cadScale" min="0.5" max="2.0" step="0.05" value="1.0" style="width: 35px;">
-              <input type="number" id="cadScaleNum" min="0.5" max="2.0" step="0.05" value="1.00" style="width: 48px; text-align:right;">倍
+              <input type="range" id="cadScale" min="0.5" max="2.0" step="0.01" value="1.0" style="width: 35px;">
+              <input type="number" id="cadScaleNum" min="0.5" max="2.0" step="0.01" value="1.00" style="width: 48px; text-align:right;">倍
             </label>
 
             <label>回転: 
@@ -444,9 +449,10 @@
               <input type="number" id="cadRotateNum" min="-180" max="180" value="0" style="width: 40px; text-align:right;">°
             </label>
 
-            <label>透明: <input type="range" id="cadOpacity" min="0.1" max="1" step="0.05" value="0.9" style="width: 30px;"></label>
-
-            <button class="cad-btn" id="resetCad" style="background:#dc3545;">消去</button>
+            <label>透明: 
+              <input type="range" id="cadOpacity" min="0.05" max="1.0" step="0.05" value="1.0" style="width: 30px;">
+              <input type="number" id="cadOpacityNum" min="5" max="100" step="5" value="100" style="width: 42px; text-align:right;">%
+            </label>
           </div>
         </div>
       </div>
@@ -462,7 +468,7 @@
       </div>
     </div>
 
-    <!-- 3枚目：近隣地図 -->
+    <!-- 3枚目：近隣地図（検索・名称 & 区画描画パネル） -->
     <div class="map-container">
       <div class="map-top-area">
         <div class="search-box">
@@ -476,6 +482,36 @@
           <input type="text" id="prefixInput" class="prefix-input" value="建設地：">
           <input type="text" id="siteNameInput" class="site-name-input" placeholder="土地名称を入力">
         </div>
+        
+        <!-- 区画描画操作エリア -->
+        <div class="panel-control-row no-print" style="justify-content: space-between; font-size: 8pt; margin-top:2px;">
+          <div style="display:flex; align-items:center; gap:3px;">
+            <button class="action-btn" id="btnDrawPoly" style="background:#17a2b8;">区画描画</button>
+            <button class="action-btn" id="btnFinishPoly" style="background:#28a745; display:none;">確定</button>
+            <button class="action-btn btn-reset" id="btnClearPoly" style="display:none;">消去</button>
+          </div>
+          <div id="polyControls" style="display:none; flex-wrap:wrap; align-items:center; gap:4px;">
+            <label>色:
+              <select id="polyColor" style="font-size:8pt;">
+                <option value="red" selected>赤</option>
+                <option value="blue">青</option>
+                <option value="green">緑</option>
+                <option value="yellow">黄</option>
+              </select>
+            </label>
+            <label>透明: <input type="range" id="polyOpacity" min="0.1" max="1" step="0.05" value="0.5" style="width:28px;"></label>
+            <label><input type="checkbox" id="polyShowStroke" checked> 枠線</label>
+            <label>線種:
+              <select id="polyDashStyle" style="font-size:8pt;">
+                <option value="solid" selected>実線</option>
+                <option value="dashed">破線</option>
+                <option value="dotted">点線</option>
+                <option value="dashdot">一点鎖線</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
       </div>
       <div class="map-main-body">
         <div class="map-title">
@@ -517,6 +553,14 @@
     let cadRealHeightMeters = 50;
     let cadScaleFactor = 1.0;
     let cadRotationDeg = 0;
+    let cadOpacityVal = 1.0;
+
+    // 区画（ポリゴン）関連変数
+    let isDrawingPoly = false;
+    let polyLatLngs = [];
+    let tempPolyline = null;
+    let tempMarkers = [];
+    let polygonLayer = null;
 
     const gsiTileUrl = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
     const gsiAttribution = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>';
@@ -600,7 +644,7 @@
     setupMapTypeToggle(obj3, 'mapTypeBtn3');
 
     /* ----------------------------------------------------
-       縮尺入力ボックス（100刻み & 近似値丸め処理）
+       縮尺入力ボックス
     ---------------------------------------------------- */
     function setupScaleInputRounding(inputId, map) {
       const input = document.getElementById(inputId);
@@ -852,7 +896,7 @@
       if (cadOverlay) map3.removeLayer(cadOverlay);
 
       cadOverlay = L.imageOverlay(processedSrc, [[cadCenterLat, cadCenterLng], [cadCenterLat, cadCenterLng]], {
-        opacity: parseFloat(document.getElementById('cadOpacity').value),
+        opacity: cadOpacityVal,
         interactive: false
       }).addTo(map3);
 
@@ -885,6 +929,7 @@
           cadCenterLng = map3.getCenter().lng;
 
           document.getElementById('cadControls').style.display = 'inline-flex';
+          document.getElementById('resetCad').style.display = 'inline-block';
           renderCadOverlay();
         };
         cadRawImage.src = cadRawDataUrl;
@@ -917,9 +962,33 @@
     document.getElementById('cadRotate').addEventListener('input', (e) => setRotation(e.target.value));
     document.getElementById('cadRotateNum').addEventListener('input', (e) => setRotation(e.target.value));
 
-    document.getElementById('cadOpacity').addEventListener('input', (e) => {
-      if (cadOverlay) cadOverlay.setOpacity(parseFloat(e.target.value));
-    });
+    /* 透明度調整（5%刻み連動） */
+    function setOpacity(val) {
+      let num = parseFloat(val);
+      if (isNaN(num)) num = 100;
+      
+      // 0.05〜1.0 (5%〜100%) の範囲に正規化
+      if (num > 1) { // %単位の入力の場合
+        num = num / 100;
+      }
+      
+      if (num < 0.05) num = 0.05;
+      if (num > 1.0) num = 1.0;
+
+      // 5%刻み(0.05単位)に丸める
+      cadOpacityVal = Math.round(num * 20) / 20;
+      const percentVal = Math.round(cadOpacityVal * 100);
+
+      document.getElementById('cadOpacity').value = cadOpacityVal;
+      document.getElementById('cadOpacityNum').value = percentVal;
+
+      if (cadOverlay) {
+        cadOverlay.setOpacity(cadOpacityVal);
+      }
+    }
+
+    document.getElementById('cadOpacity').addEventListener('input', (e) => setOpacity(e.target.value));
+    document.getElementById('cadOpacityNum').addEventListener('input', (e) => setOpacity(e.target.value));
 
     /* ----------------------------------------------------
        長押し連続移動処理
@@ -969,7 +1038,154 @@
       cadRawDataUrl = null;
       document.getElementById('cadFileInput').value = '';
       document.getElementById('cadControls').style.display = 'none';
+      document.getElementById('resetCad').style.display = 'none';
+      setOpacity(1.0);
     });
+
+    /* ----------------------------------------------------
+       区画（ポリゴン）描画機能
+    ---------------------------------------------------- */
+    const btnDrawPoly = document.getElementById('btnDrawPoly');
+    const btnFinishPoly = document.getElementById('btnFinishPoly');
+    const btnClearPoly = document.getElementById('btnClearPoly');
+    const polyControls = document.getElementById('polyControls');
+    const map3Element = document.getElementById('map3');
+
+    // 作図した点のマーク（〇「丸型」アイコン）
+    const vertexCircleIcon = L.divIcon({
+      html: `<svg viewBox="0 0 12 12" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#ff0000" stroke="#ffffff" stroke-width="1.5"/></svg>`,
+      className: 'custom-leaflet-marker',
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    });
+
+    // 枠線スタイル設定
+    function getDashArray(styleKey) {
+      switch (styleKey) {
+        case 'dashed': return '8, 8';          // 破線
+        case 'dotted': return '2, 5';          // 点線
+        case 'dashdot': return '12, 5, 2, 5';  // 一点鎖線
+        case 'solid':
+        default: return null;                  // 実線
+      }
+    }
+
+    function applyPolygonStyle() {
+      if (!polygonLayer) return;
+
+      const colorKey = document.getElementById('polyColor').value;
+      const opacity = parseFloat(document.getElementById('polyOpacity').value);
+      const showStroke = document.getElementById('polyShowStroke').checked;
+      const dashStyleKey = document.getElementById('polyDashStyle').value;
+
+      const colorMap = { red: '#ff0000', blue: '#0055ff', green: '#198754', yellow: '#ffc107' };
+      const strokeColor = colorMap[colorKey] || '#ff0000';
+
+      polygonLayer.setStyle({
+        stroke: showStroke,
+        color: strokeColor,
+        weight: 2,
+        dashArray: getDashArray(dashStyleKey),
+        fill: true,
+        fillColor: strokeColor,
+        fillOpacity: opacity
+      });
+    }
+
+    function clearTempPoly() {
+      if (tempPolyline) { map3.removeLayer(tempPolyline); tempPolyline = null; }
+      tempMarkers.forEach(m => map3.removeLayer(m));
+      tempMarkers = [];
+      polyLatLngs = [];
+    }
+
+    btnDrawPoly.addEventListener('click', () => {
+      if (isDrawingPoly) return;
+
+      if (polygonLayer) {
+        if (!confirm('既存の区画を削除して新しく作成しますか？')) return;
+        map3.removeLayer(polygonLayer);
+        polygonLayer = null;
+      }
+
+      clearTempPoly();
+      isDrawingPoly = true;
+      map3Element.classList.add('drawing-mode');
+
+      btnDrawPoly.textContent = '描画中...';
+      btnDrawPoly.style.background = '#fd7e14';
+      btnFinishPoly.style.display = 'inline-block';
+      btnClearPoly.style.display = 'inline-block';
+      polyControls.style.display = 'none';
+    });
+
+    map3.on('click', (e) => {
+      if (!isDrawingPoly) return;
+
+      const latlng = [e.latlng.lat, e.latlng.lng];
+      polyLatLngs.push(latlng);
+
+      const m = L.marker(latlng, { icon: vertexCircleIcon, interactive: false }).addTo(map3);
+      tempMarkers.push(m);
+
+      if (polyLatLngs.length > 1) {
+        if (tempPolyline) tempPolyline.setLatLngs(polyLatLngs);
+        else tempPolyline = L.polyline(polyLatLngs, { color: '#ff0000', weight: 2, dashArray: '4, 4' }).addTo(map3);
+      }
+    });
+
+    function finishDrawingPoly() {
+      if (!isDrawingPoly) return;
+
+      if (polyLatLngs.length < 3) {
+        alert('区画を作成するには3点以上指定してください。');
+        return;
+      }
+
+      polygonLayer = L.polygon(polyLatLngs).addTo(map3);
+      
+      clearTempPoly();
+      isDrawingPoly = false;
+      map3Element.classList.remove('drawing-mode');
+
+      btnDrawPoly.textContent = '区画描画';
+      btnDrawPoly.style.background = '#17a2b8';
+      btnFinishPoly.style.display = 'none';
+      polyControls.style.display = 'inline-flex';
+
+      applyPolygonStyle();
+    }
+
+    btnFinishPoly.addEventListener('click', finishDrawingPoly);
+    map3.on('dblclick', (e) => {
+      if (isDrawingPoly) {
+        L.DomEvent.stopPropagation(e);
+        finishDrawingPoly();
+      }
+    });
+
+    btnClearPoly.addEventListener('click', () => {
+      if (polygonLayer) {
+        map3.removeLayer(polygonLayer);
+        polygonLayer = null;
+      }
+      clearTempPoly();
+      isDrawingPoly = false;
+      map3Element.classList.remove('drawing-mode');
+
+      btnDrawPoly.textContent = '区画描画';
+      btnDrawPoly.style.background = '#17a2b8';
+      btnFinishPoly.style.display = 'none';
+      btnClearPoly.style.display = 'none';
+      polyControls.style.display = 'none';
+    });
+
+    // スタイルリアルタイム更新
+    document.getElementById('polyColor').addEventListener('change', applyPolygonStyle);
+    document.getElementById('polyOpacity').addEventListener('input', applyPolygonStyle);
+    document.getElementById('polyShowStroke').addEventListener('change', applyPolygonStyle);
+    document.getElementById('polyDashStyle').addEventListener('change', applyPolygonStyle);
+
 
     // 地番検索処理
     async function doAddressSearch() {
@@ -1017,8 +1233,20 @@
     ---------------------------------------------------- */
     function getMapStateData() {
       const markerPos = marker3 ? marker3.getLatLng() : { lat: centerLat, lng: centerLng };
+      
+      let polyData = null;
+      if (polygonLayer) {
+        polyData = {
+          latLngs: polygonLayer.getLatLngs()[0].map(pt => [pt.lat, pt.lng]),
+          color: document.getElementById('polyColor').value,
+          opacity: document.getElementById('polyOpacity').value,
+          showStroke: document.getElementById('polyShowStroke').checked,
+          dashStyle: document.getElementById('polyDashStyle').value
+        };
+      }
+
       return {
-        version: "1.0",
+        version: "1.2",
         maps: {
           map1: { center: map1.getCenter(), zoom: map1.getZoom(), scale: parseFloat(document.getElementById('scaleInput1').value), type: obj1.currentMapType },
           map2: { center: map2.getCenter(), zoom: map2.getZoom(), scale: parseFloat(document.getElementById('scaleInput2').value), type: obj2.currentMapType },
@@ -1047,18 +1275,18 @@
           lineColor: document.getElementById('cadLineColor').value,
           scaleFactor: cadScaleFactor,
           rotationDeg: cadRotationDeg,
-          opacity: document.getElementById('cadOpacity').value,
+          opacity: cadOpacityVal,
           centerLat: cadCenterLat,
           centerLng: cadCenterLng,
           baseWidthMeters: cadBaseWidthMeters
-        }
+        },
+        polygon: polyData
       };
     }
 
     function restoreMapStateData(data) {
       if (!data) return;
 
-      // 地図位置と縮尺復元
       if (data.maps) {
         if (data.maps.map1) {
           map1.setView(data.maps.map1.center, data.maps.map1.zoom);
@@ -1077,7 +1305,6 @@
         }
       }
 
-      // ポインタ復元
       if (data.marker) {
         document.getElementById('ptrShape').value = data.marker.shape || 'pin';
         document.getElementById('ptrColor').value = data.marker.color || '#dc3545';
@@ -1087,7 +1314,6 @@
         setAllMarkersLatLng(data.marker.lat, data.marker.lng);
       }
 
-      // 土地名称復元
       if (data.siteInfo) {
         document.getElementById('showPrefix').checked = data.siteInfo.showPrefix !== false;
         document.getElementById('prefixInput').style.display = data.siteInfo.showPrefix !== false ? 'inline-block' : 'none';
@@ -1095,14 +1321,12 @@
         document.getElementById('siteNameInput').value = data.siteInfo.siteName || '';
       }
 
-      // CAD復元
       if (data.cad && data.cad.hasImage && data.cad.imageData) {
         cadRawDataUrl = data.cad.imageData;
         document.getElementById('cadPresetScale').value = data.cad.presetScale || 500;
         document.getElementById('cadDpiSelect').value = data.cad.dpiSelect || 'A4_H';
         document.getElementById('cadLineThickness').value = data.cad.lineThickness || 5;
         document.getElementById('cadLineColor').value = data.cad.lineColor || '#000000';
-        document.getElementById('cadOpacity').value = data.cad.opacity || 0.9;
         
         cadBaseWidthMeters = data.cad.baseWidthMeters || 50;
         cadCenterLat = data.cad.centerLat;
@@ -1111,13 +1335,32 @@
         cadRawImage = new Image();
         cadRawImage.onload = function() {
           document.getElementById('cadControls').style.display = 'inline-flex';
+          document.getElementById('resetCad').style.display = 'inline-block';
           setCadScale(data.cad.scaleFactor || 1.0);
           setRotation(data.cad.rotationDeg || 0);
+          setOpacity(data.cad.opacity !== undefined ? data.cad.opacity : 1.0);
           renderCadOverlay();
         };
         cadRawImage.src = cadRawDataUrl;
       } else {
         document.getElementById('resetCad').click();
+      }
+
+      // 区画復元
+      if (data.polygon && data.polygon.latLngs && data.polygon.latLngs.length > 0) {
+        if (polygonLayer) map3.removeLayer(polygonLayer);
+        polygonLayer = L.polygon(data.polygon.latLngs).addTo(map3);
+
+        document.getElementById('polyColor').value = data.polygon.color || 'red';
+        document.getElementById('polyOpacity').value = data.polygon.opacity || 0.5;
+        document.getElementById('polyShowStroke').checked = data.polygon.showStroke !== false;
+        document.getElementById('polyDashStyle').value = data.polygon.dashStyle || 'solid';
+
+        btnClearPoly.style.display = 'inline-block';
+        polyControls.style.display = 'inline-flex';
+        applyPolygonStyle();
+      } else {
+        btnClearPoly.click();
       }
 
       updateRedFrame2on1();
@@ -1157,12 +1400,13 @@
 
       setAllMarkersLatLng(centerLat, centerLng);
       document.getElementById('resetCad').click();
+      btnClearPoly.click();
 
       updateRedFrame2on1();
       updateRedFrame3on2();
     });
 
-    // SAVE ボタン（名前を付けて保存）
+    // SAVE ボタン
     document.getElementById('btnSave').addEventListener('click', () => {
       const stateData = getMapStateData();
       const jsonStr = JSON.stringify(stateData, null, 2);
@@ -1180,7 +1424,7 @@
       URL.revokeObjectURL(url);
     });
 
-    // LOAD ボタン（保存したファイルを開く）
+    // LOAD ボタン
     document.getElementById('btnLoad').addEventListener('click', () => {
       document.getElementById('jsonFileInput').click();
     });
@@ -1199,7 +1443,7 @@
         }
       };
       reader.readAsText(file);
-      e.target.value = ''; // 次回同じファイルを選べるようクリア
+      e.target.value = '';
     });
   </script>
 </body>
