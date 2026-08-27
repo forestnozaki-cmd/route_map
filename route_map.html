@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>国土地理院地図 A3-3枚配置</title>
+  <title>案内図 A3-3枚配置</title>
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -25,8 +25,6 @@
       padding: 15mm;
       box-sizing: border-box;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-
-      /* 3つの枠を横並びにする設定 */
       display: flex;
       gap: 10mm;
     }
@@ -36,30 +34,53 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      border: 1px solid #999;
     }
 
-    /* タイトルバー上部のエリア（検索窓配置用・背景塗りつぶしなし） */
-    .map-top-area {
-      min-height: 40px;
-      padding: 4px 0;
+    /* 上部エリアの統一高さ（105px） */
+    .map-top-area, .cad-panel-area {
+      height: 105px;
+      padding: 4px 6px;
       box-sizing: border-box;
       display: flex;
-      align-items: center;
-      background-color: transparent;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      background-color: #f8f9fa;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      flex-shrink: 0;
     }
 
-    /* 検索窓のスタイル */
+    /* 各パネルのタイトルスタイル */
+    .panel-header-title {
+      font-size: 8.5pt;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 2px;
+    }
+
+    /* 地図とタイトルバーを包む下部枠 */
+    .map-main-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #999;
+      position: relative;
+    }
+
+    /* 検索窓・ボタン配置エリア */
     .search-box {
       display: flex;
       gap: 6px;
       width: 100%;
+      align-items: center;
     }
 
     .search-input {
       flex: 1;
-      padding: 5px 8px;
-      font-size: 10pt;
+      padding: 4px 8px;
+      font-size: 9.5pt;
       border: 1px solid #ccc;
       border-radius: 4px;
       outline: none;
@@ -68,33 +89,90 @@
     }
 
     .search-button {
-      padding: 5px 12px;
-      font-size: 10pt;
+      padding: 4px 8px;
+      font-size: 9pt;
       background-color: #007bff;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
       font-weight: bold;
+      white-space: nowrap;
     }
 
-    .search-button:hover {
-      background-color: #0056b3;
+    .search-button:hover { background-color: #0056b3; }
+    .search-button:disabled { background-color: #aaa; cursor: not-allowed; }
+
+    /* 土地名称エリア */
+    .site-name-box {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .prefix-input {
+      width: 75px;
+      padding: 3px 4px;
+      font-size: 10pt;
+      font-weight: bold;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      background-color: #fff;
+      color: #333;
+      box-sizing: border-box;
+      text-align: right;
+    }
+
+    .site-name-input {
+      flex: 1;
+      max-width: 220px;
+      padding: 3px 8px;
+      font-size: 10pt;
+      font-weight: bold;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      background-color: #fff;
+      color: #333;
+      box-sizing: border-box;
+      text-align: left;
     }
 
     /* キャプション（見出し）部分 */
     .map-title {
       background-color: #333;
       color: white;
-      padding: 8px 12px;
+      padding: 6px 10px;
       font-weight: bold;
-      font-size: 13pt;
+      font-size: 12pt;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    /* 縮尺入力エリアのスタイル */
+    .map-title-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 個別地図切替ボタン */
+    .map-type-btn {
+      padding: 2px 6px;
+      font-size: 8pt;
+      background-color: #fd7e14;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .map-type-btn:hover { background-color: #e06805; }
+
     .map-scale-container {
       font-size: 11pt;
       font-weight: normal;
@@ -104,7 +182,6 @@
       gap: 4px;
     }
 
-    /* 縮尺入力セル（黒背景・黒枠・白文字） */
     .scale-input {
       width: 85px;
       padding: 3px 6px;
@@ -117,101 +194,392 @@
       outline: none;
     }
 
-    .scale-input::-webkit-inner-spin-button,
-    .scale-input::-webkit-outer-spin-button {
-      filter: invert(1);
-    }
-
     /* 地図描画エリア */
     .map-box {
       flex: 1;
       width: 100%;
+      position: relative;
     }
 
-    /* 印刷時の用紙設定 */
-    @page {
-      size: A3 landscape;
-      margin: 0;
+    /* 作図モード中のカーソルスタイル */
+    .map-box.drawing-mode,
+    .map-box.drawing-mode .leaflet-container,
+    .map-box.drawing-mode .leaflet-interactive {
+      cursor: crosshair !important;
     }
 
+    .compass-icon {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 48px;
+      height: 56px;
+      z-index: 1000;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 4px;
+      border-radius: 4px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.15);
+    }
+
+    /* 操作パネル共通スタイル */
+    .panel-control-container {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      width: 100%;
+      font-size: 8.5pt;
+    }
+
+    .panel-control-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .panel-control-row label {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+
+    /* 最上部アクションボタン群 */
+    .action-btn {
+      padding: 3px 8px;
+      font-size: 8pt;
+      font-weight: bold;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .btn-reset { background-color: #dc3545; }
+    .btn-reset:hover { background-color: #bd2130; }
+    .btn-save { background-color: #28a745; }
+    .btn-save:hover { background-color: #218838; }
+    .btn-load { background-color: #007bff; }
+    .btn-load:hover { background-color: #0069d9; }
+
+    .cad-btn-group {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .cad-btn {
+      padding: 2px 6px;
+      font-size: 8pt;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .cad-btn:hover { background: #5a6268; }
+    .cad-btn:active { background: #343a40; }
+
+    /* カスタムファイル選択ボタン（標準ファイル名表示の完全非表示化） */
+    .file-select-label {
+      display: inline-block;
+      padding: 2px 6px;
+      background-color: #efefef;
+      border: 1px solid #767676;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 8pt;
+      color: #000;
+      user-select: none;
+      font-weight: normal !important;
+    }
+    .file-select-label:hover { background-color: #e0e0e0; }
+    .file-select-label:active { background-color: #d0d0d0; }
+    .file-select-label input[type="file"] { display: none !important; }
+
+    /* 移動ボタン専用スタイル（サイズ統一・矢印強調） */
+    .cad-btn-move {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      font-size: 9pt;
+      font-weight: bold;
+      background: #5a6268;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .cad-btn-move:hover { background: #464c52; }
+    .cad-btn-move:active { background: #343a40; }
+
+    .size-info-tag {
+      background: #e9ecef;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: bold;
+      color: #0d6efd;
+    }
+
+    /* リーフレットのカスタムマーカー枠 */
+    .custom-leaflet-marker {
+      background: none;
+      border: none;
+    }
+
+    /* 印刷設定 */
+    @page { size: A3 landscape; margin: 0; }
     @media print {
-      body {
-        background: none;
-        padding: 0;
+      body { background: none; padding: 0; }
+      .a3-page { box-shadow: none; }
+      .scale-input { border: none; background: transparent; color: #ffffff; padding: 0; width: auto; }
+      .map-top-area, .cad-panel-area { border: 1px solid #ffffff; background: transparent; }
+      .search-box, .panel-control-container, .map-type-btn, .panel-header-title, .no-print { display: none !important; }
+      .prefix-input, .site-name-input {
+        border: none !important;
+        background: transparent !important;
+        color: #000 !important;
+        font-size: 12pt !important;
+        font-weight: bold !important;
+        padding: 0 !important;
       }
-      .a3-page {
-        box-shadow: none;
-      }
-      .scale-input {
-        border: none;
-        background: transparent;
-        color: #ffffff;
-        padding: 0;
-        width: auto;
-      }
-      /* 印刷時は検索エリア・スペーサーを非表示にして地図表示領域を広く確保 */
-      .map-top-area {
-        display: none;
-      }
+      .prefix-input { width: auto !important; text-align: right !important; }
+      .site-name-input { width: auto !important; text-align: left !important; }
+      .compass-icon { background: transparent; box-shadow: none; }
+      .leaflet-control-zoom { display: none !important; }
     }
   </style>
 </head>
 <body>
 
-  <!-- A3サイズの用紙コンテナ -->
+  <!-- SVG定義（方位マーク） -->
+  <svg style="display:none;">
+    <defs>
+      <g id="north-compass">
+        <svg viewBox="0 0 100 120" width="100%" height="100%">
+          <text x="50" y="21" font-family="sans-serif" font-weight="bold" font-size="22" text-anchor="middle" fill="#000">N</text>
+          <g transform="translate(50,72)">
+            <circle cx="0" cy="0" r="38" fill="none" stroke="#000" stroke-width="1.2"/>
+            <circle cx="0" cy="0" r="28" fill="none" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 0,-42 -7,-6" fill="#000"/>
+            <polygon points="0,0 0,-42 7,-6" fill="#fff" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 0,42 7,-6" fill="#000"/>
+            <polygon points="0,0 0,42 -7,-6" fill="#fff" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 42,0 6,-7" fill="#000"/>
+            <polygon points="0,0 42,0 6,7" fill="#fff" stroke="#000" stroke-width="0.8"/>
+            <polygon points="0,0 -42,0 -6,7" fill="#000"/>
+            <polygon points="0,0 -42,0 -6,-7" fill="#fff" stroke="#000" stroke-width="0.8"/>
+          </g>
+        </svg>
+      </g>
+    </defs>
+  </svg>
+
   <div class="a3-page">
     
     <!-- 1枚目：広域図 -->
     <div class="map-container">
-      <!-- 高さを揃えるための上部空欄スペーサー -->
-      <div class="map-top-area"></div>
-      
-      <!-- 黒塗りタイトルバー -->
-      <div class="map-title">
-        <span>広域図</span>
-        <div class="map-scale-container">
-          <span>1 /</span>
-          <input type="number" id="scaleInput1" class="scale-input" value="25000" step="100" min="100">
+      <div class="map-top-area">
+        <div class="panel-control-container">
+          <div class="panel-control-row" style="gap: 4px;">
+            <button id="btnReset" class="action-btn btn-reset">RESET</button>
+            <button id="btnSave" class="action-btn btn-save">SAVE</button>
+            <button id="btnLoad" class="action-btn btn-load">LOAD</button>
+            <input type="file" id="jsonFileInput" accept=".json" style="display:none;">
+          </div>
+          <div class="panel-control-row">
+            <label><b>ポインタ</b> 形状:
+              <select id="ptrShape" style="font-size:8pt;">
+                <option value="pin">標準ピン</option>
+                <option value="arrow">矢印</option>
+                <option value="triangle">▼ 逆三角</option>
+              </select>
+            </label>
+            <label>色:
+              <select id="ptrColor" style="font-size:8pt;">
+                <option value="#007bff">青</option>
+                <option value="#dc3545" selected>赤</option>
+                <option value="#fd7e14">オレンジ</option>
+                <option value="#198754">緑</option>
+              </select>
+            </label>
+          </div>
+          <div class="panel-control-row">
+            <label><input type="checkbox" id="ptrShowText" checked> 文字表示:</label>
+            <input type="text" id="ptrText" placeholder="名称" style="width:65px; font-size:8pt; padding:2px;">
+            <label>サイズ:
+              <select id="ptrFontSize" style="font-size:8pt;">
+                <option value="10">10px</option>
+                <option value="12" selected>12px</option>
+                <option value="14">14px</option>
+                <option value="16">16px</option>
+                <option value="18">18px</option>
+              </select>
+            </label>
+          </div>
         </div>
       </div>
-      <div id="map1" class="map-box"></div>
+      <div class="map-main-body">
+        <div class="map-title">
+          <div class="map-title-left">
+            <span>広域図</span>
+            <button class="map-type-btn" id="mapTypeBtn1">OSM切替</button>
+          </div>
+          <div class="map-scale-container"><span>1 /</span><input type="number" id="scaleInput1" class="scale-input" value="25000"></div>
+        </div>
+        <div id="map1" class="map-box"><svg class="compass-icon"><use href="#north-compass"/></svg></div>
+      </div>
     </div>
 
     <!-- 2枚目：中域図 -->
     <div class="map-container">
-      <!-- 高さを揃えるための上部空欄スペーサー -->
-      <div class="map-top-area"></div>
-      
-      <!-- 黒塗りタイトルバー -->
-      <div class="map-title">
-        <span>中域図</span>
-        <div class="map-scale-container">
-          <span>1 /</span>
-          <input type="number" id="scaleInput2" class="scale-input" value="7500" step="100" min="100">
+      <div class="cad-panel-area">
+        <div class="panel-header-title">土地形状取込</div>
+        <div class="panel-control-container">
+          <div class="panel-control-row">
+            <label>縮尺: 1/<input type="number" id="cadPresetScale" value="500" min="1" style="width: 42px; text-align:right;"></label>
+            <label>サイズ:
+              <select id="cadDpiSelect" style="font-size:8pt;">
+                <option value="A4_H" selected>A4横 (297mm)</option>
+                <option value="A4_V">A4縦 (210mm)</option>
+                <option value="A3_H">A3横 (420mm)</option>
+                <option value="A3_V">A3縦 (297mm)</option>
+                <option value="300">300 DPI</option>
+                <option value="150">150 DPI</option>
+                <option value="96">96 DPI</option>
+              </select>
+            </label>
+            <div style="display: inline-flex; align-items: center; gap: 3px;">
+              <span style="font-weight: bold;">PNG図面:</span>
+              <label class="file-select-label">
+                ファイルを選択
+                <input type="file" id="cadFileInput" accept="image/png, image/jpeg">
+              </label>
+            </div>
+            <button class="cad-btn" id="resetCad" style="background:#dc3545; display:none;">消去</button>
+          </div>
+
+          <div id="cadControls" class="panel-control-row" style="display:none;">
+            <span id="cadCalculatedSize" class="size-info-tag">実寸: --m × --m</span>
+            <label>太さ: 
+              <select id="cadLineThickness" style="font-size:8pt;">
+                <option value="10">10px</option>
+                <option value="15">15px</option>
+                <option value="20" selected>20px</option>
+                <option value="25">25px</option>
+                <option value="30">30px</option>
+              </select>
+            </label>
+            <label>色: 
+              <select id="cadLineColor" style="font-size:8pt;">
+                <option value="#000000">黒</option>
+                <option value="#ff0000">赤</option>
+                <option value="#0055ff">青</option>
+              </select>
+            </label>
+
+            <label>移動：</label>
+            <div class="cad-btn-group">
+              <button class="cad-btn-move" id="moveUp">▲</button>
+              <button class="cad-btn-move" id="moveDown">▼</button>
+              <button class="cad-btn-move" id="moveLeft">◀</button>
+              <button class="cad-btn-move" id="moveRight">▶</button>
+            </div>
+
+            <label>倍率: 
+              <input type="range" id="cadScale" min="0.5" max="2.0" step="0.01" value="1.0" style="width: 35px;">
+              <input type="number" id="cadScaleNum" min="0.5" max="2.0" step="0.01" value="1.00" style="width: 48px; text-align:right;">倍
+            </label>
+
+            <label>回転: 
+              <input type="range" id="cadRotate" min="-180" max="180" step="1" value="0" style="width: 30px;">
+              <input type="number" id="cadRotateNum" min="-180" max="180" value="0" style="width: 40px; text-align:right;">°
+            </label>
+
+            <label>透明: 
+              <input type="range" id="cadOpacity" min="0.05" max="1.0" step="0.05" value="1.0" style="width: 30px;">
+              <input type="number" id="cadOpacityNum" min="5" max="100" step="5" value="100" style="width: 42px; text-align:right;">%
+            </label>
+          </div>
         </div>
       </div>
-      <div id="map2" class="map-box"></div>
+      <div class="map-main-body">
+        <div class="map-title">
+          <div class="map-title-left">
+            <span>中域図</span>
+            <button class="map-type-btn" id="mapTypeBtn2">OSM切替</button>
+          </div>
+          <div class="map-scale-container"><span>1 /</span><input type="number" id="scaleInput2" class="scale-input" value="7500"></div>
+        </div>
+        <div id="map2" class="map-box"><svg class="compass-icon"><use href="#north-compass"/></svg></div>
+      </div>
     </div>
 
-    <!-- 3枚目：近隣地図 -->
+    <!-- 3枚目：近隣地図（検索・名称 & 区画描画パネル） -->
     <div class="map-container">
-      <!-- タイトルバー上部の検索バーエリア（周囲塗りつぶしなし） -->
       <div class="map-top-area">
         <div class="search-box">
-          <input type="text" id="searchInput" class="search-input" placeholder="住所・地番を入力（例: 東京都千代田区1-1）">
+          <input type="text" id="searchInput" class="search-input" placeholder="住所・地番を入力（例: 茅野市宮川1380-3）">
           <button id="searchBtn" class="search-button">検索</button>
         </div>
-      </div>
+        <div class="site-name-box">
+          <label class="no-print" style="font-size:8.5pt; display:flex; align-items:center; gap:2px; cursor:pointer;">
+            <input type="checkbox" id="showPrefix" checked> 接頭辞
+          </label>
+          <input type="text" id="prefixInput" class="prefix-input" value="建設地：">
+          <input type="text" id="siteNameInput" class="site-name-input" placeholder="土地名称を入力">
+        </div>
+        
+        <!-- 区画描画操作エリア -->
+        <div class="panel-control-row no-print" style="justify-content: space-between; font-size: 8pt; margin-top:2px;">
+          <div style="display:flex; align-items:center; gap:3px;">
+            <button class="action-btn" id="btnDrawPoly" style="background:#17a2b8;">区画描画</button>
+            <button class="action-btn" id="btnFinishPoly" style="background:#28a745; display:none;">確定</button>
+            <button class="action-btn btn-reset" id="btnClearPoly" style="display:none;">消去</button>
+          </div>
+          <div id="polyControls" style="display:none; flex-wrap:wrap; align-items:center; gap:4px;">
+            <span style="font-weight:bold;">着色</span>
+            <label>色:
+              <select id="polyColor" style="font-size:8pt;">
+                <option value="red" selected>赤</option>
+                <option value="blue">青</option>
+                <option value="green">緑</option>
+                <option value="yellow">黄</option>
+              </select>
+            </label>
+            <label>透明: <input type="range" id="polyOpacity" min="0.1" max="1" step="0.05" value="0.5" style="width:28px;"></label>
+            <label><input type="checkbox" id="polyShowStroke" checked> 枠線</label>
+            <label>線種:
+              <select id="polyDashStyle" style="font-size:8pt;">
+                <option value="solid" selected>実線</option>
+                <option value="dashed">破線</option>
+                <option value="dotted">点線</option>
+                <option value="dashdot">一点鎖線</option>
+              </select>
+            </label>
+          </div>
+        </div>
 
-      <!-- 黒塗りタイトルバー -->
-      <div class="map-title">
-        <span>近隣地図</span>
-        <div class="map-scale-container">
-          <span>1 /</span>
-          <input type="number" id="scaleInput3" class="scale-input" value="2000" step="100" min="100">
+      </div>
+      <div class="map-main-body">
+        <div class="map-title">
+          <div class="map-title-left">
+            <span>近隣地図</span>
+            <button class="map-type-btn" id="mapTypeBtn3">OSM切替</button>
+          </div>
+          <div class="map-scale-container"><span>1 /</span><input type="number" id="scaleInput3" class="scale-input" value="2000"></div>
+        </div>
+        <div id="map3" class="map-box">
+          <svg class="compass-icon"><use href="#north-compass"/></svg>
         </div>
       </div>
-      <div id="map3" class="map-box"></div>
     </div>
 
   </div>
@@ -220,15 +588,49 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
   <script>
-    // 1. 中心となる位置の設定（初期値: 東京駅）
-    let centerLat = 35.681236;
-    let centerLng = 139.767125;
+    const DEFAULT_LAT = 35.681236;
+    const DEFAULT_LNG = 139.767125;
 
-    // 2. 国土地理院タイルのURLパターン（標準地図）
+    let centerLat = DEFAULT_LAT;
+    let centerLng = DEFAULT_LNG;
+
+    // ポインタ（マーカー）インスタンス
+    let marker1 = null, marker2 = null, marker3 = null;
+
+    // CAD重ね合わせ関連変数
+    let cadOverlay = null;
+    let cadRawImage = null;
+    let cadRawDataUrl = null;
+    let cadCenterLat = DEFAULT_LAT;
+    let cadCenterLng = DEFAULT_LNG;
+    let cadBaseWidthMeters = 50; 
+    let cadRealWidthMeters = 50;
+    let cadRealHeightMeters = 50;
+    let cadScaleFactor = 1.0;
+    let cadRotationDeg = 0;
+    let cadOpacityVal = 1.0;
+
+    // 区画（ポリゴン）関連変数
+    let isDrawingPoly = false;
+    let polyLatLngs = [];
+    let tempPolyline = null;
+    let tempMarkers = [];
+    let polygonLayer = null;
+
     const gsiTileUrl = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
     const gsiAttribution = '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>';
+    const osmTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const osmAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-    // 3. 地図の現在のズーム/緯度から縮尺分母を計算する関数
+    /* ----------------------------------------------------
+       土地名称の接頭辞切り替え
+    ---------------------------------------------------- */
+    const showPrefixCb = document.getElementById('showPrefix');
+    const prefixInput = document.getElementById('prefixInput');
+    showPrefixCb.addEventListener('change', () => {
+      prefixInput.style.display = showPrefixCb.checked ? 'inline-block' : 'none';
+    });
+
     function calculateScaleRatio(map) {
       const center = map.getCenter();
       const zoom = map.getZoom();
@@ -236,14 +638,12 @@
       return Math.round(metersPerPx / (0.0254 / 96));
     }
 
-    // 4. 指定した縮尺分母から適切なズームレベルを計算する関数
     function getZoomFromScale(scaleRatio, lat) {
       const metersPerPxForZoom0 = (40075016.686 * Math.cos(lat * Math.PI / 180)) / 256;
       const targetMetersPerPx = scaleRatio * (0.0254 / 96);
       return Math.log2(metersPerPxForZoom0 / targetMetersPerPx);
     }
 
-    // 5. 地図移動・ズーム時に入力欄の数値を更新する関数
     function updateInputField(map, inputId) {
       const input = document.getElementById(inputId);
       if (document.activeElement !== input) {
@@ -251,134 +651,848 @@
       }
     }
 
-    // 6. 各枠に地図を初期化してタイルを読み込む関数
     function createGsiMap(elementId, inputId, initialScale) {
-      const input = document.getElementById(inputId);
       const initialZoom = getZoomFromScale(initialScale, centerLat);
 
-      const map = L.map(elementId, {
-        zoomSnap: 0.1,
-        zoomDelta: 0.1
-      }).setView([centerLat, centerLng], initialZoom);
-
-      L.tileLayer(gsiTileUrl, {
-        attribution: gsiAttribution,
-        maxZoom: 18,
-        minZoom: 5
-      }).addTo(map);
-
-      const marker = L.marker([centerLat, centerLng]).addTo(map);
+      const map = L.map(elementId, { zoomSnap: 0.1, zoomDelta: 0.1 }).setView([centerLat, centerLng], initialZoom);
+      const tileLayer = L.tileLayer(gsiTileUrl, { attribution: gsiAttribution, maxNativeZoom: 18, maxZoom: 22, minZoom: 5 }).addTo(map);
 
       updateInputField(map, inputId);
 
-      map.on('zoomend moveend', function() {
-        updateInputField(map, inputId);
-      });
-
-      function applyScaleFromInput() {
-        const val = parseFloat(input.value);
-        if (!isNaN(val) && val > 0) {
-          const targetZoom = getZoomFromScale(val, map.getCenter().lat);
-          map.setZoom(targetZoom);
-        }
-      }
-
-      input.addEventListener('change', applyScaleFromInput);
-      input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          applyScaleFromInput();
-          input.blur();
-        }
-      });
-
-      return { map, marker };
+      return { map, tileLayer, currentMapType: 'gsi' };
     }
 
-    // 7. それぞれの枠を描画
-    const obj1 = createGsiMap('map1', 'scaleInput1', 25000); // 広域図
-    const obj2 = createGsiMap('map2', 'scaleInput2', 7500);  // 中域図
-    const obj3 = createGsiMap('map3', 'scaleInput3', 2000);  // 近隣地図
+    const obj1 = createGsiMap('map1', 'scaleInput1', 25000);
+    const obj2 = createGsiMap('map2', 'scaleInput2', 7500);
+    const obj3 = createGsiMap('map3', 'scaleInput3', 2000);
 
-    const map1 = obj1.map, marker1 = obj1.marker;
-    const map2 = obj2.map, marker2 = obj2.marker;
-    const map3 = obj3.map, marker3 = obj3.marker;
+    const map1 = obj1.map;
+    const map2 = obj2.map;
+    const map3 = obj3.map;
 
-    // 8. 表示範囲の赤枠描画処理
-    let redFrame2on1 = null;
+    /* ----------------------------------------------------
+       個別地図切替処理
+    ---------------------------------------------------- */
+    function setupMapTypeToggle(obj, btnId) {
+      const btn = document.getElementById(btnId);
+      btn.addEventListener('click', () => {
+        if (obj.currentMapType === 'gsi') {
+          obj.tileLayer.options.maxNativeZoom = 19;
+          obj.tileLayer.setUrl(osmTileUrl);
+          obj.map.attributionControl.removeAttribution(gsiAttribution);
+          obj.map.attributionControl.addAttribution(osmAttribution);
+          obj.currentMapType = 'osm';
+          btn.textContent = '地理院地図切替';
+        } else {
+          obj.tileLayer.options.maxNativeZoom = 18;
+          obj.tileLayer.setUrl(gsiTileUrl);
+          obj.map.attributionControl.removeAttribution(osmAttribution);
+          obj.map.attributionControl.addAttribution(gsiAttribution);
+          obj.currentMapType = 'gsi';
+          btn.textContent = 'OSM切替';
+        }
+      });
+    }
+
+    setupMapTypeToggle(obj1, 'mapTypeBtn1');
+    setupMapTypeToggle(obj2, 'mapTypeBtn2');
+    setupMapTypeToggle(obj3, 'mapTypeBtn3');
+
+    /* ----------------------------------------------------
+       縮尺入力ボックス
+    ---------------------------------------------------- */
+    function setupScaleInputRounding(inputId, map) {
+      const input = document.getElementById(inputId);
+      input.setAttribute('step', '100');
+      let lastVal = parseFloat(input.value);
+
+      map.on('zoomend moveend', () => {
+        updateInputField(map, inputId);
+        lastVal = parseFloat(input.value);
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          let val = lastVal;
+          if (val % 100 !== 0) val = Math.ceil(val / 100) * 100;
+          else val += 100;
+          input.value = val;
+          lastVal = val;
+          map.setZoom(getZoomFromScale(val, map.getCenter().lat));
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          let val = lastVal;
+          if (val % 100 !== 0) val = Math.floor(val / 100) * 100;
+          else val -= 100;
+          if (val < 100) val = 100;
+          input.value = val;
+          lastVal = val;
+          map.setZoom(getZoomFromScale(val, map.getCenter().lat));
+        }
+      });
+
+      input.addEventListener('input', (e) => {
+        if (e.inputType === 'insertText' || e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
+          return;
+        }
+
+        let currentVal = parseFloat(input.value);
+        if (isNaN(currentVal)) return;
+
+        if (currentVal !== lastVal) {
+          let newVal = lastVal;
+          if (currentVal > lastVal) {
+            if (lastVal % 100 !== 0) newVal = Math.ceil(lastVal / 100) * 100;
+            else newVal = lastVal + 100;
+          } else {
+            if (lastVal % 100 !== 0) newVal = Math.floor(lastVal / 100) * 100;
+            else newVal = lastVal - 100;
+          }
+          if (newVal < 100) newVal = 100;
+          input.value = newVal;
+          lastVal = newVal;
+          map.setZoom(getZoomFromScale(newVal, map.getCenter().lat));
+        }
+      });
+
+      input.addEventListener('change', () => {
+        let val = parseFloat(input.value);
+        if (!isNaN(val) && val > 0) {
+          lastVal = val;
+          map.setZoom(getZoomFromScale(val, map.getCenter().lat));
+        }
+      });
+    }
+
+    setupScaleInputRounding('scaleInput1', map1);
+    setupScaleInputRounding('scaleInput2', map2);
+    setupScaleInputRounding('scaleInput3', map3);
+
+    // 赤枠連動
+    let redFrame2on1 = null, redFrame3on2 = null;
     function updateRedFrame2on1() {
       const bounds = map2.getBounds();
-      if (redFrame2on1) {
-        redFrame2on1.setBounds(bounds);
-      } else {
-        redFrame2on1 = L.rectangle(bounds, {
-          color: '#ff0000',
-          weight: 2,
-          fill: true,
-          fillColor: '#ff0000',
-          fillOpacity: 0.1
-        }).addTo(map1);
-      }
+      if (redFrame2on1) redFrame2on1.setBounds(bounds);
+      else redFrame2on1 = L.rectangle(bounds, { color: '#ff0000', weight: 2, fill: true, fillColor: '#ff0000', fillOpacity: 0.1 }).addTo(map1);
     }
-
-    let redFrame3on2 = null;
     function updateRedFrame3on2() {
       const bounds = map3.getBounds();
-      if (redFrame3on2) {
-        redFrame3on2.setBounds(bounds);
-      } else {
-        redFrame3on2 = L.rectangle(bounds, {
-          color: '#ff0000',
-          weight: 2,
-          fill: true,
-          fillColor: '#ff0000',
-          fillOpacity: 0.1
-        }).addTo(map2);
-      }
+      if (redFrame3on2) redFrame3on2.setBounds(bounds);
+      else redFrame3on2 = L.rectangle(bounds, { color: '#ff0000', weight: 2, fill: true, fillColor: '#ff0000', fillOpacity: 0.1 }).addTo(map2);
     }
 
-    setTimeout(function() {
-      updateRedFrame2on1();
-      updateRedFrame3on2();
-    }, 200);
-
+    setTimeout(() => { updateRedFrame2on1(); updateRedFrame3on2(); }, 200);
     map2.on('move zoom', updateRedFrame2on1);
     map3.on('move zoom', updateRedFrame3on2);
 
-    // 9. 国土地理院 住所検索APIを利用した検索処理
-    async function doAddressSearch() {
-      const query = document.getElementById('searchInput').value.trim();
-      if (!query) return;
+    /* ----------------------------------------------------
+       カスタムポインタ
+    ---------------------------------------------------- */
+    function getCustomIcon() {
+      const shape = document.getElementById('ptrShape').value;
+      const color = document.getElementById('ptrColor').value;
+      const showText = document.getElementById('ptrShowText').checked;
+      const textVal = document.getElementById('ptrText').value.trim();
+      const fontSize = document.getElementById('ptrFontSize').value;
 
-      try {
-        const url = `https://msearch.gsi.go.jp/address-search-api/msearch/search?q=${encodeURIComponent(query)}`;
-        const response = await fetch(url);
-        const data = await response.json();
+      let svgHtml = '';
+      if (shape === 'pin') {
+        svgHtml = `<svg viewBox="0 0 24 36" width="24" height="36"><path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 24 12 24s12-15 12-24c0-6.63-5.37-12-12-12zm0 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="${color}" stroke="#ffffff" stroke-width="1.2"/></svg>`;
+      } else if (shape === 'arrow') {
+        svgHtml = `<svg viewBox="0 0 24 36" width="24" height="36"><path d="M12 36L2 18h6V2h8v16h6L12 36z" fill="${color}" stroke="#ffffff" stroke-width="1.2"/></svg>`;
+      } else if (shape === 'triangle') {
+        svgHtml = `<svg viewBox="0 0 24 24" width="24" height="24"><polygon points="0,2 24,2 12,24" fill="${color}" stroke="#ffffff" stroke-width="1.5"/></svg>`;
+      }
 
-        if (data && data.length > 0) {
-          const lng = data[0].geometry.coordinates[0];
-          const lat = data[0].geometry.coordinates[1];
+      const textHtml = (showText && textVal)
+        ? `<div style="font-size:${fontSize}px; font-weight:bold; color:#000; background:rgba(255,255,255,0.95); border:1.5px solid ${color}; padding:1px 5px; border-radius:4px; white-space:nowrap; margin-bottom:2px;">${textVal}</div>`
+        : '';
 
-          [map1, map2, map3].forEach(map => map.setView([lat, lng]));
-          [marker1, marker2, marker3].forEach(marker => marker.setLatLng([lat, lng]));
+      const html = `<div style="display:flex; flex-direction:column; align-items:center; transform: translate(-50%, -100%); cursor:grab; pointer-events:auto;">
+                      ${textHtml}
+                      ${svgHtml}
+                    </div>`;
 
-          updateRedFrame2on1();
-          updateRedFrame3on2();
+      return L.divIcon({
+        html: html,
+        className: 'custom-leaflet-marker',
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+      });
+    }
+
+    function updateAllMarkersIcon() {
+      const icon = getCustomIcon();
+      if (marker1) marker1.setIcon(icon);
+      if (marker2) marker2.setIcon(icon);
+      if (marker3) marker3.setIcon(icon);
+    }
+
+    function setAllMarkersLatLng(lat, lng) {
+      const icon = getCustomIcon();
+
+      if (!marker1) marker1 = L.marker([lat, lng], { icon: icon, interactive: false }).addTo(map1);
+      else marker1.setLatLng([lat, lng]);
+
+      if (!marker2) marker2 = L.marker([lat, lng], { icon: icon, interactive: false }).addTo(map2);
+      else marker2.setLatLng([lat, lng]);
+
+      if (!marker3) {
+        marker3 = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(map3);
+        const syncPos = () => {
+          const pos = marker3.getLatLng();
+          if (marker1) marker1.setLatLng(pos);
+          if (marker2) marker2.setLatLng(pos);
+        };
+        marker3.on('drag', syncPos);
+        marker3.on('dragend', syncPos);
+      } else {
+        marker3.setLatLng([lat, lng]);
+      }
+      updateAllMarkersIcon();
+    }
+
+    setAllMarkersLatLng(centerLat, centerLng);
+
+    document.getElementById('ptrShape').addEventListener('change', updateAllMarkersIcon);
+    document.getElementById('ptrColor').addEventListener('change', updateAllMarkersIcon);
+    document.getElementById('ptrShowText').addEventListener('change', updateAllMarkersIcon);
+    document.getElementById('ptrText').addEventListener('input', updateAllMarkersIcon);
+    document.getElementById('ptrFontSize').addEventListener('change', updateAllMarkersIcon);
+
+    /* ----------------------------------------------------
+       CAD画像処理 & 重ね合わせ
+    ---------------------------------------------------- */
+    function processAndThickenImage(img, lineThickness = 20, lineColor = '#000000', threshold = 220) {
+      const c1 = document.createElement('canvas');
+      c1.width = img.width;
+      c1.height = img.height;
+      const ctx1 = c1.getContext('2d');
+      ctx1.drawImage(img, 0, 0);
+
+      const imgData = ctx1.getImageData(0, 0, c1.width, c1.height);
+      const data = imgData.data;
+
+      const rTarget = parseInt(lineColor.slice(1, 3), 16);
+      const gTarget = parseInt(lineColor.slice(3, 5), 16);
+      const bTarget = parseInt(lineColor.slice(5, 7), 16);
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        if (r >= threshold && g >= threshold && b >= threshold) {
+          data[i + 3] = 0;
         } else {
-          alert('該当する住所・地番が見つかりませんでした。入力内容をご確認ください。');
+          data[i] = rTarget;
+          data[i + 1] = gTarget;
+          data[i + 2] = bTarget;
+          data[i + 3] = 255;
         }
-      } catch (error) {
-        console.error('Search error:', error);
-        alert('住所検索中にエラーが発生しました。');
+      }
+      ctx1.putImageData(imgData, 0, 0);
+
+      if (lineThickness <= 1) return c1.toDataURL('image/png');
+
+      const c2 = document.createElement('canvas');
+      c2.width = img.width;
+      c2.height = img.height;
+      const ctx2 = c2.getContext('2d');
+
+      const radius = Math.floor(lineThickness / 2);
+      const step = radius > 3 ? 2 : 1; 
+
+      for (let x = -radius; x <= radius; x += step) {
+        for (let y = -radius; y <= radius; y += step) {
+          if (x * x + y * y <= radius * radius + 1) {
+            ctx2.drawImage(c1, x, y);
+          }
+        }
+      }
+      return c2.toDataURL('image/png');
+    }
+
+    function updateCadTransform() {
+      if (!cadOverlay) return;
+
+      cadRealWidthMeters = cadBaseWidthMeters * cadScaleFactor;
+      const aspect = cadRawImage.height / cadRawImage.width;
+      cadRealHeightMeters = cadRealWidthMeters * aspect;
+
+      const latDeg = cadRealHeightMeters / 111000;
+      const lngDeg = cadRealWidthMeters / (111000 * Math.cos(cadCenterLat * Math.PI / 180));
+
+      const bounds = [
+        [cadCenterLat - latDeg / 2, cadCenterLng - lngDeg / 2],
+        [cadCenterLat + latDeg / 2, cadCenterLng + lngDeg / 2]
+      ];
+
+      cadOverlay.setBounds(bounds);
+
+      const el = cadOverlay.getElement();
+      if (el) {
+        el.style.transformOrigin = 'center center';
+        const currentTransform = el.style.transform.replace(/rotate\([^)]*\)/g, '');
+        el.style.transform = `${currentTransform} rotate(${cadRotationDeg}deg)`;
+      }
+
+      document.getElementById('cadCalculatedSize').textContent = 
+        `実寸: ${cadRealWidthMeters.toFixed(1)}m × ${cadRealHeightMeters.toFixed(1)}m`;
+    }
+
+    map3.on('layeradd move zoom', updateCadTransform);
+
+    function renderCadOverlay() {
+      if (!cadRawImage) return;
+
+      const thickness = parseInt(document.getElementById('cadLineThickness').value);
+      const color = document.getElementById('cadLineColor').value;
+      const processedSrc = processAndThickenImage(cadRawImage, thickness, color);
+
+      if (cadOverlay) map3.removeLayer(cadOverlay);
+
+      cadOverlay = L.imageOverlay(processedSrc, [[cadCenterLat, cadCenterLng], [cadCenterLat, cadCenterLng]], {
+        opacity: cadOpacityVal,
+        interactive: false
+      }).addTo(map3);
+
+      updateCadTransform();
+    }
+
+    document.getElementById('cadFileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const scaleDenominator = parseFloat(document.getElementById('cadPresetScale').value) || 500;
+      const sizePreset = document.getElementById('cadDpiSelect').value;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        cadRawDataUrl = event.target.result;
+        cadRawImage = new Image();
+        cadRawImage.onload = function() {
+          if (sizePreset === 'A4_H') cadBaseWidthMeters = 0.297 * scaleDenominator;
+          else if (sizePreset === 'A4_V') cadBaseWidthMeters = 0.210 * scaleDenominator;
+          else if (sizePreset === 'A3_H') cadBaseWidthMeters = 0.420 * scaleDenominator;
+          else if (sizePreset === 'A3_V') cadBaseWidthMeters = 0.297 * scaleDenominator;
+          else {
+            const dpi = parseFloat(sizePreset);
+            const widthInInches = cadRawImage.width / dpi;
+            cadBaseWidthMeters = widthInInches * 0.0254 * scaleDenominator;
+          }
+
+          cadCenterLat = map3.getCenter().lat;
+          cadCenterLng = map3.getCenter().lng;
+
+          document.getElementById('cadControls').style.display = 'inline-flex';
+          document.getElementById('resetCad').style.display = 'inline-block';
+          renderCadOverlay();
+        };
+        cadRawImage.src = cadRawDataUrl;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('cadLineThickness').addEventListener('change', renderCadOverlay);
+    document.getElementById('cadLineColor').addEventListener('change', renderCadOverlay);
+
+    function setCadScale(val) {
+      cadScaleFactor = parseFloat(val) || 1.0;
+      if (cadScaleFactor < 0.5) cadScaleFactor = 0.5;
+      if (cadScaleFactor > 2.0) cadScaleFactor = 2.0;
+      document.getElementById('cadScale').value = cadScaleFactor;
+      document.getElementById('cadScaleNum').value = cadScaleFactor.toFixed(2);
+      updateCadTransform();
+    }
+    document.getElementById('cadScale').addEventListener('input', (e) => setCadScale(e.target.value));
+    document.getElementById('cadScaleNum').addEventListener('input', (e) => setCadScale(e.target.value));
+
+    function setRotation(deg) {
+      cadRotationDeg = parseInt(deg) || 0;
+      if (cadRotationDeg > 180) cadRotationDeg = 180;
+      if (cadRotationDeg < -180) cadRotationDeg = -180;
+      document.getElementById('cadRotate').value = cadRotationDeg;
+      document.getElementById('cadRotateNum').value = cadRotationDeg;
+      updateCadTransform();
+    }
+    document.getElementById('cadRotate').addEventListener('input', (e) => setRotation(e.target.value));
+    document.getElementById('cadRotateNum').addEventListener('input', (e) => setRotation(e.target.value));
+
+    /* 透明度調整（5%刻み連動） */
+    function setOpacity(val) {
+      let num = parseFloat(val);
+      if (isNaN(num)) num = 100;
+      
+      if (num > 1) {
+        num = num / 100;
+      }
+      
+      if (num < 0.05) num = 0.05;
+      if (num > 1.0) num = 1.0;
+
+      cadOpacityVal = Math.round(num * 20) / 20;
+      const percentVal = Math.round(cadOpacityVal * 100);
+
+      document.getElementById('cadOpacity').value = cadOpacityVal;
+      document.getElementById('cadOpacityNum').value = percentVal;
+
+      if (cadOverlay) {
+        cadOverlay.setOpacity(cadOpacityVal);
       }
     }
 
-    document.getElementById('searchBtn').addEventListener('click', doAddressSearch);
-    document.getElementById('searchInput').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        doAddressSearch();
+    document.getElementById('cadOpacity').addEventListener('input', (e) => setOpacity(e.target.value));
+    document.getElementById('cadOpacityNum').addEventListener('input', (e) => setOpacity(e.target.value));
+
+    /* ----------------------------------------------------
+       長押し連続移動処理
+    ---------------------------------------------------- */
+    const moveStep = 0.000006; 
+
+    function attachLongPress(buttonId, action) {
+      const btn = document.getElementById(buttonId);
+      let timer = null;
+      let interval = null;
+
+      const start = (e) => {
+        if (e.type === 'touchstart') e.preventDefault();
+        action();
+        timer = setTimeout(() => {
+          interval = setInterval(action, 50);
+        }, 200);
+      };
+
+      const stop = () => {
+        if (timer) clearTimeout(timer);
+        if (interval) clearInterval(interval);
+        timer = null;
+        interval = null;
+      };
+
+      btn.addEventListener('mousedown', start);
+      btn.addEventListener('mouseup', stop);
+      btn.addEventListener('mouseleave', stop);
+
+      btn.addEventListener('touchstart', start, { passive: false });
+      btn.addEventListener('touchend', stop);
+      btn.addEventListener('touchcancel', stop);
+    }
+
+    attachLongPress('moveUp', () => { cadCenterLat += moveStep; updateCadTransform(); });
+    attachLongPress('moveDown', () => { cadCenterLat -= moveStep; updateCadTransform(); });
+    attachLongPress('moveLeft', () => { cadCenterLng -= moveStep; updateCadTransform(); });
+    attachLongPress('moveRight', () => { cadCenterLng += moveStep; updateCadTransform(); });
+
+    document.getElementById('resetCad').addEventListener('click', () => {
+      if (cadOverlay) {
+        map3.removeLayer(cadOverlay);
+        cadOverlay = null;
+      }
+      cadRawImage = null;
+      cadRawDataUrl = null;
+      document.getElementById('cadFileInput').value = '';
+      document.getElementById('cadControls').style.display = 'none';
+      document.getElementById('resetCad').style.display = 'none';
+      setOpacity(1.0);
+    });
+
+    /* ----------------------------------------------------
+       区画（ポリゴン）描画機能
+    ---------------------------------------------------- */
+    const btnDrawPoly = document.getElementById('btnDrawPoly');
+    const btnFinishPoly = document.getElementById('btnFinishPoly');
+    const btnClearPoly = document.getElementById('btnClearPoly');
+    const polyControls = document.getElementById('polyControls');
+    const map3Element = document.getElementById('map3');
+
+    const vertexCircleIcon = L.divIcon({
+      html: `<svg viewBox="0 0 12 12" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#ff0000" stroke="#ffffff" stroke-width="1.5"/></svg>`,
+      className: 'custom-leaflet-marker',
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    });
+
+    function getDashArray(styleKey) {
+      switch (styleKey) {
+        case 'dashed': return '8, 8';
+        case 'dotted': return '2, 5';
+        case 'dashdot': return '12, 5, 2, 5';
+        case 'solid':
+        default: return null;
+      }
+    }
+
+    function applyPolygonStyle() {
+      if (!polygonLayer) return;
+
+      const colorKey = document.getElementById('polyColor').value;
+      const opacity = parseFloat(document.getElementById('polyOpacity').value);
+      const showStroke = document.getElementById('polyShowStroke').checked;
+      const dashStyleKey = document.getElementById('polyDashStyle').value;
+
+      const colorMap = { red: '#ff0000', blue: '#0055ff', green: '#198754', yellow: '#ffc107' };
+      const strokeColor = colorMap[colorKey] || '#ff0000';
+
+      polygonLayer.setStyle({
+        stroke: showStroke,
+        color: strokeColor,
+        weight: 2,
+        dashArray: getDashArray(dashStyleKey),
+        fill: true,
+        fillColor: strokeColor,
+        fillOpacity: opacity
+      });
+    }
+
+    function clearTempPoly() {
+      if (tempPolyline) { map3.removeLayer(tempPolyline); tempPolyline = null; }
+      tempMarkers.forEach(m => map3.removeLayer(m));
+      tempMarkers = [];
+      polyLatLngs = [];
+    }
+
+    btnDrawPoly.addEventListener('click', () => {
+      if (isDrawingPoly) return;
+
+      if (polygonLayer) {
+        if (!confirm('既存の区画を削除して新しく作成しますか？')) return;
+        map3.removeLayer(polygonLayer);
+        polygonLayer = null;
+      }
+
+      clearTempPoly();
+      isDrawingPoly = true;
+      map3Element.classList.add('drawing-mode');
+
+      btnDrawPoly.textContent = '描画中...';
+      btnDrawPoly.style.background = '#fd7e14';
+      btnFinishPoly.style.display = 'inline-block';
+      btnClearPoly.style.display = 'inline-block';
+      polyControls.style.display = 'none';
+    });
+
+    map3.on('click', (e) => {
+      if (!isDrawingPoly) return;
+
+      const latlng = [e.latlng.lat, e.latlng.lng];
+      polyLatLngs.push(latlng);
+
+      const m = L.marker(latlng, { icon: vertexCircleIcon, interactive: false }).addTo(map3);
+      tempMarkers.push(m);
+
+      if (polyLatLngs.length > 1) {
+        if (tempPolyline) tempPolyline.setLatLngs(polyLatLngs);
+        else tempPolyline = L.polyline(polyLatLngs, { color: '#ff0000', weight: 2, dashArray: '4, 4' }).addTo(map3);
       }
     });
-  </script>
 
+    function finishDrawingPoly() {
+      if (!isDrawingPoly) return;
+
+      if (polyLatLngs.length < 3) {
+        alert('区画を作成するには3点以上指定してください。');
+        return;
+      }
+
+      polygonLayer = L.polygon(polyLatLngs).addTo(map3);
+      
+      clearTempPoly();
+      isDrawingPoly = false;
+      map3Element.classList.remove('drawing-mode');
+
+      btnDrawPoly.textContent = '区画描画';
+      btnDrawPoly.style.background = '#17a2b8';
+      btnFinishPoly.style.display = 'none';
+      polyControls.style.display = 'inline-flex';
+
+      applyPolygonStyle();
+    }
+
+    btnFinishPoly.addEventListener('click', finishDrawingPoly);
+    map3.on('dblclick', (e) => {
+      if (isDrawingPoly) {
+        L.DomEvent.stopPropagation(e);
+        finishDrawingPoly();
+      }
+    });
+
+    btnClearPoly.addEventListener('click', () => {
+      if (polygonLayer) {
+        map3.removeLayer(polygonLayer);
+        polygonLayer = null;
+      }
+      clearTempPoly();
+      isDrawingPoly = false;
+      map3Element.classList.remove('drawing-mode');
+
+      btnDrawPoly.textContent = '区画描画';
+      btnDrawPoly.style.background = '#17a2b8';
+      btnFinishPoly.style.display = 'none';
+      btnClearPoly.style.display = 'none';
+      polyControls.style.display = 'none';
+    });
+
+    document.getElementById('polyColor').addEventListener('change', applyPolygonStyle);
+    document.getElementById('polyOpacity').addEventListener('input', applyPolygonStyle);
+    document.getElementById('polyShowStroke').addEventListener('change', applyPolygonStyle);
+    document.getElementById('polyDashStyle').addEventListener('change', applyPolygonStyle);
+
+    // 地番検索処理
+    async function doAddressSearch() {
+      const rawQuery = document.getElementById('searchInput').value.trim();
+      if (!rawQuery) return;
+
+      const btn = document.getElementById('searchBtn');
+      btn.textContent = '検索中...'; btn.disabled = true;
+
+      function normalize(str) {
+        let s = str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+        return s.replace(/[－ー−―]/g, '-').replace(/(番地|番|号|の)/g, '-').replace(/-+/g, '-').replace(/-$/, '');
+      }
+
+      async function fetchCoords(q) {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=jp`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+          }
+        } catch (e) {}
+        return null;
+      }
+
+      const norm = normalize(rawQuery);
+      let result = await fetchCoords(rawQuery) || await fetchCoords(norm);
+
+      if (result) {
+        [map1, map2, map3].forEach(m => m.setView([result.lat, result.lng]));
+        setAllMarkersLatLng(result.lat, result.lng);
+        updateRedFrame2on1(); updateRedFrame3on2();
+      } else {
+        alert('該当する住所・地番が見つかりませんでした。');
+      }
+
+      btn.textContent = '検索'; btn.disabled = false;
+    }
+
+    document.getElementById('searchBtn').addEventListener('click', doAddressSearch);
+    document.getElementById('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAddressSearch(); });
+
+    /* ----------------------------------------------------
+       データ保存・復元・リセット処理 (RESET, SAVE, LOAD)
+    ---------------------------------------------------- */
+    function getMapStateData() {
+      const markerPos = marker3 ? marker3.getLatLng() : { lat: centerLat, lng: centerLng };
+      
+      let polyData = null;
+      if (polygonLayer) {
+        polyData = {
+          latLngs: polygonLayer.getLatLngs()[0].map(pt => [pt.lat, pt.lng]),
+          color: document.getElementById('polyColor').value,
+          opacity: document.getElementById('polyOpacity').value,
+          showStroke: document.getElementById('polyShowStroke').checked,
+          dashStyle: document.getElementById('polyDashStyle').value
+        };
+      }
+
+      return {
+        version: "1.2",
+        maps: {
+          map1: { center: map1.getCenter(), zoom: map1.getZoom(), scale: parseFloat(document.getElementById('scaleInput1').value), type: obj1.currentMapType },
+          map2: { center: map2.getCenter(), zoom: map2.getZoom(), scale: parseFloat(document.getElementById('scaleInput2').value), type: obj2.currentMapType },
+          map3: { center: map3.getCenter(), zoom: map3.getZoom(), scale: parseFloat(document.getElementById('scaleInput3').value), type: obj3.currentMapType }
+        },
+        marker: {
+          lat: markerPos.lat,
+          lng: markerPos.lng,
+          shape: document.getElementById('ptrShape').value,
+          color: document.getElementById('ptrColor').value,
+          showText: document.getElementById('ptrShowText').checked,
+          text: document.getElementById('ptrText').value,
+          fontSize: document.getElementById('ptrFontSize').value
+        },
+        siteInfo: {
+          showPrefix: document.getElementById('showPrefix').checked,
+          prefix: document.getElementById('prefixInput').value,
+          siteName: document.getElementById('siteNameInput').value
+        },
+        cad: {
+          hasImage: !!cadRawDataUrl,
+          imageData: cadRawDataUrl,
+          presetScale: document.getElementById('cadPresetScale').value,
+          dpiSelect: document.getElementById('cadDpiSelect').value,
+          lineThickness: document.getElementById('cadLineThickness').value,
+          lineColor: document.getElementById('cadLineColor').value,
+          scaleFactor: cadScaleFactor,
+          rotationDeg: cadRotationDeg,
+          opacity: cadOpacityVal,
+          centerLat: cadCenterLat,
+          centerLng: cadCenterLng,
+          baseWidthMeters: cadBaseWidthMeters
+        },
+        polygon: polyData
+      };
+    }
+
+    function restoreMapStateData(data) {
+      if (!data) return;
+
+      if (data.maps) {
+        if (data.maps.map1) {
+          map1.setView(data.maps.map1.center, data.maps.map1.zoom);
+          document.getElementById('scaleInput1').value = data.maps.map1.scale;
+          if (data.maps.map1.type !== obj1.currentMapType) document.getElementById('mapTypeBtn1').click();
+        }
+        if (data.maps.map2) {
+          map2.setView(data.maps.map2.center, data.maps.map2.zoom);
+          document.getElementById('scaleInput2').value = data.maps.map2.scale;
+          if (data.maps.map2.type !== obj2.currentMapType) document.getElementById('mapTypeBtn2').click();
+        }
+        if (data.maps.map3) {
+          map3.setView(data.maps.map3.center, data.maps.map3.zoom);
+          document.getElementById('scaleInput3').value = data.maps.map3.scale;
+          if (data.maps.map3.type !== obj3.currentMapType) document.getElementById('mapTypeBtn3').click();
+        }
+      }
+
+      if (data.marker) {
+        document.getElementById('ptrShape').value = data.marker.shape || 'pin';
+        document.getElementById('ptrColor').value = data.marker.color || '#dc3545';
+        document.getElementById('ptrShowText').checked = data.marker.showText !== false;
+        document.getElementById('ptrText').value = data.marker.text || '';
+        document.getElementById('ptrFontSize').value = data.marker.fontSize || '12';
+        setAllMarkersLatLng(data.marker.lat, data.marker.lng);
+      }
+
+      if (data.siteInfo) {
+        document.getElementById('showPrefix').checked = data.siteInfo.showPrefix !== false;
+        document.getElementById('prefixInput').style.display = data.siteInfo.showPrefix !== false ? 'inline-block' : 'none';
+        document.getElementById('prefixInput').value = data.siteInfo.prefix || '建設地：';
+        document.getElementById('siteNameInput').value = data.siteInfo.siteName || '';
+      }
+
+      if (data.cad && data.cad.hasImage && data.cad.imageData) {
+        cadRawDataUrl = data.cad.imageData;
+        document.getElementById('cadPresetScale').value = data.cad.presetScale || 500;
+        document.getElementById('cadDpiSelect').value = data.cad.dpiSelect || 'A4_H';
+        document.getElementById('cadLineThickness').value = data.cad.lineThickness || 20;
+        document.getElementById('cadLineColor').value = data.cad.lineColor || '#000000';
+        
+        cadBaseWidthMeters = data.cad.baseWidthMeters || 50;
+        cadCenterLat = data.cad.centerLat;
+        cadCenterLng = data.cad.centerLng;
+
+        cadRawImage = new Image();
+        cadRawImage.onload = function() {
+          document.getElementById('cadControls').style.display = 'inline-flex';
+          document.getElementById('resetCad').style.display = 'inline-block';
+          setCadScale(data.cad.scaleFactor || 1.0);
+          setRotation(data.cad.rotationDeg || 0);
+          setOpacity(data.cad.opacity !== undefined ? data.cad.opacity : 1.0);
+          renderCadOverlay();
+        };
+        cadRawImage.src = cadRawDataUrl;
+      } else {
+        document.getElementById('resetCad').click();
+      }
+
+      if (data.polygon && data.polygon.latLngs && data.polygon.latLngs.length > 0) {
+        if (polygonLayer) map3.removeLayer(polygonLayer);
+        polygonLayer = L.polygon(data.polygon.latLngs).addTo(map3);
+
+        document.getElementById('polyColor').value = data.polygon.color || 'red';
+        document.getElementById('polyOpacity').value = data.polygon.opacity || 0.5;
+        document.getElementById('polyShowStroke').checked = data.polygon.showStroke !== false;
+        document.getElementById('polyDashStyle').value = data.polygon.dashStyle || 'solid';
+
+        btnClearPoly.style.display = 'inline-block';
+        polyControls.style.display = 'inline-flex';
+        applyPolygonStyle();
+      } else {
+        btnClearPoly.click();
+      }
+
+      updateRedFrame2on1();
+      updateRedFrame3on2();
+    }
+
+    // RESET ボタン
+    document.getElementById('btnReset').addEventListener('click', () => {
+      if (!confirm('初期画面に戻しますか？（入力内容は消去されます）')) return;
+
+      centerLat = DEFAULT_LAT;
+      centerLng = DEFAULT_LNG;
+
+      document.getElementById('ptrShape').value = 'pin';
+      document.getElementById('ptrColor').value = '#dc3545';
+      document.getElementById('ptrShowText').checked = true;
+      document.getElementById('ptrText').value = '';
+      document.getElementById('ptrFontSize').value = '12';
+
+      document.getElementById('showPrefix').checked = true;
+      document.getElementById('prefixInput').style.display = 'inline-block';
+      document.getElementById('prefixInput').value = '建設地：';
+      document.getElementById('siteNameInput').value = '';
+      document.getElementById('searchInput').value = '';
+
+      if (obj1.currentMapType === 'osm') document.getElementById('mapTypeBtn1').click();
+      if (obj2.currentMapType === 'osm') document.getElementById('mapTypeBtn2').click();
+      if (obj3.currentMapType === 'osm') document.getElementById('mapTypeBtn3').click();
+
+      map1.setView([centerLat, centerLng], getZoomFromScale(25000, centerLat));
+      map2.setView([centerLat, centerLng], getZoomFromScale(7500, centerLat));
+      map3.setView([centerLat, centerLng], getZoomFromScale(2000, centerLat));
+
+      document.getElementById('scaleInput1').value = 25000;
+      document.getElementById('scaleInput2').value = 7500;
+      document.getElementById('scaleInput3').value = 2000;
+
+      setAllMarkersLatLng(centerLat, centerLng);
+      document.getElementById('resetCad').click();
+      btnClearPoly.click();
+
+      updateRedFrame2on1();
+      updateRedFrame3on2();
+    });
+
+    // SAVE ボタン
+    document.getElementById('btnSave').addEventListener('click', () => {
+      const stateData = getMapStateData();
+      const jsonStr = JSON.stringify(stateData, null, 2);
+      const siteName = document.getElementById('siteNameInput').value.trim() || '案内図データ';
+      const fileName = `${siteName}.json`;
+
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // LOAD ボタン
+    document.getElementById('btnLoad').addEventListener('click', () => {
+      document.getElementById('jsonFileInput').click();
+    });
+
+    document.getElementById('jsonFileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          restoreMapStateData(data);
+        } catch (err) {
+          alert('JSONファイルの読み込みに失敗しました。正しいフォーマットか確認してください。');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+  </script>
 </body>
 </html>
