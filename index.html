@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>国土地理院地図 A3-3枚配置 & CAD図面重ね合わせ</title>
+  <title>案内図 A3-3枚配置</title>
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -39,17 +39,25 @@
     /* 上部エリアの統一高さ（105px） */
     .map-top-area, .cad-panel-area {
       height: 105px;
-      padding: 6px;
+      padding: 4px 6px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 6px;
+      gap: 4px;
       background-color: #f8f9fa;
       border: 1px solid #ccc;
       border-radius: 4px;
       margin-bottom: 4px;
       flex-shrink: 0;
+    }
+
+    /* 各パネルのタイトルスタイル */
+    .panel-header-title {
+      font-size: 8.5pt;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 2px;
     }
 
     /* 地図とタイトルバーを包む下部枠 */
@@ -218,7 +226,7 @@
     .panel-control-container {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       width: 100%;
       font-size: 8.5pt;
     }
@@ -257,7 +265,8 @@
 
     .cad-btn-group {
       display: inline-flex;
-      gap: 2px;
+      gap: 3px;
+      align-items: center;
     }
 
     .cad-btn {
@@ -272,6 +281,44 @@
     }
     .cad-btn:hover { background: #5a6268; }
     .cad-btn:active { background: #343a40; }
+
+    /* カスタムファイル選択ボタン（標準ファイル名表示の完全非表示化） */
+    .file-select-label {
+      display: inline-block;
+      padding: 2px 6px;
+      background-color: #efefef;
+      border: 1px solid #767676;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 8pt;
+      color: #000;
+      user-select: none;
+      font-weight: normal !important;
+    }
+    .file-select-label:hover { background-color: #e0e0e0; }
+    .file-select-label:active { background-color: #d0d0d0; }
+    .file-select-label input[type="file"] { display: none !important; }
+
+    /* 移動ボタン専用スタイル（サイズ統一・矢印強調） */
+    .cad-btn-move {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      font-size: 9pt;
+      font-weight: bold;
+      background: #5a6268;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .cad-btn-move:hover { background: #464c52; }
+    .cad-btn-move:active { background: #343a40; }
 
     .size-info-tag {
       background: #e9ecef;
@@ -294,7 +341,7 @@
       .a3-page { box-shadow: none; }
       .scale-input { border: none; background: transparent; color: #ffffff; padding: 0; width: auto; }
       .map-top-area, .cad-panel-area { border: 1px solid #ffffff; background: transparent; }
-      .search-box, .panel-control-container, .map-type-btn, .no-print { display: none !important; }
+      .search-box, .panel-control-container, .map-type-btn, .panel-header-title, .no-print { display: none !important; }
       .prefix-input, .site-name-input {
         border: none !important;
         background: transparent !important;
@@ -394,6 +441,7 @@
     <!-- 2枚目：中域図 -->
     <div class="map-container">
       <div class="cad-panel-area">
+        <div class="panel-header-title">土地形状取込</div>
         <div class="panel-control-container">
           <div class="panel-control-row">
             <label>縮尺: 1/<input type="number" id="cadPresetScale" value="500" min="1" style="width: 42px; text-align:right;"></label>
@@ -408,7 +456,13 @@
                 <option value="96">96 DPI</option>
               </select>
             </label>
-            <label>図面: <input type="file" id="cadFileInput" accept="image/png, image/jpeg" style="width:110px;"></label>
+            <div style="display: inline-flex; align-items: center; gap: 3px;">
+              <span style="font-weight: bold;">PNG図面:</span>
+              <label class="file-select-label">
+                ファイルを選択
+                <input type="file" id="cadFileInput" accept="image/png, image/jpeg">
+              </label>
+            </div>
             <button class="cad-btn" id="resetCad" style="background:#dc3545; display:none;">消去</button>
           </div>
 
@@ -416,11 +470,11 @@
             <span id="cadCalculatedSize" class="size-info-tag">実寸: --m × --m</span>
             <label>太さ: 
               <select id="cadLineThickness" style="font-size:8pt;">
-                <option value="2">2px</option>
-                <option value="5" selected>5px</option>
                 <option value="10">10px</option>
                 <option value="15">15px</option>
-                <option value="20">20px</option>
+                <option value="20" selected>20px</option>
+                <option value="25">25px</option>
+                <option value="30">30px</option>
               </select>
             </label>
             <label>色: 
@@ -433,10 +487,10 @@
 
             <label>移動：</label>
             <div class="cad-btn-group">
-              <button class="cad-btn" id="moveUp">↑</button>
-              <button class="cad-btn" id="moveDown">↓</button>
-              <button class="cad-btn" id="moveLeft">←</button>
-              <button class="cad-btn" id="moveRight">→</button>
+              <button class="cad-btn-move" id="moveUp">▲</button>
+              <button class="cad-btn-move" id="moveDown">▼</button>
+              <button class="cad-btn-move" id="moveLeft">◀</button>
+              <button class="cad-btn-move" id="moveRight">▶</button>
             </div>
 
             <label>倍率: 
@@ -491,6 +545,7 @@
             <button class="action-btn btn-reset" id="btnClearPoly" style="display:none;">消去</button>
           </div>
           <div id="polyControls" style="display:none; flex-wrap:wrap; align-items:center; gap:4px;">
+            <span style="font-weight:bold;">着色</span>
             <label>色:
               <select id="polyColor" style="font-size:8pt;">
                 <option value="red" selected>赤</option>
@@ -809,7 +864,7 @@
     /* ----------------------------------------------------
        CAD画像処理 & 重ね合わせ
     ---------------------------------------------------- */
-    function processAndThickenImage(img, lineThickness = 5, lineColor = '#000000', threshold = 220) {
+    function processAndThickenImage(img, lineThickness = 20, lineColor = '#000000', threshold = 220) {
       const c1 = document.createElement('canvas');
       c1.width = img.width;
       c1.height = img.height;
@@ -967,15 +1022,13 @@
       let num = parseFloat(val);
       if (isNaN(num)) num = 100;
       
-      // 0.05〜1.0 (5%〜100%) の範囲に正規化
-      if (num > 1) { // %単位の入力の場合
+      if (num > 1) {
         num = num / 100;
       }
       
       if (num < 0.05) num = 0.05;
       if (num > 1.0) num = 1.0;
 
-      // 5%刻み(0.05単位)に丸める
       cadOpacityVal = Math.round(num * 20) / 20;
       const percentVal = Math.round(cadOpacityVal * 100);
 
@@ -1051,7 +1104,6 @@
     const polyControls = document.getElementById('polyControls');
     const map3Element = document.getElementById('map3');
 
-    // 作図した点のマーク（〇「丸型」アイコン）
     const vertexCircleIcon = L.divIcon({
       html: `<svg viewBox="0 0 12 12" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#ff0000" stroke="#ffffff" stroke-width="1.5"/></svg>`,
       className: 'custom-leaflet-marker',
@@ -1059,14 +1111,13 @@
       iconAnchor: [6, 6]
     });
 
-    // 枠線スタイル設定
     function getDashArray(styleKey) {
       switch (styleKey) {
-        case 'dashed': return '8, 8';          // 破線
-        case 'dotted': return '2, 5';          // 点線
-        case 'dashdot': return '12, 5, 2, 5';  // 一点鎖線
+        case 'dashed': return '8, 8';
+        case 'dotted': return '2, 5';
+        case 'dashdot': return '12, 5, 2, 5';
         case 'solid':
-        default: return null;                  // 実線
+        default: return null;
       }
     }
 
@@ -1180,12 +1231,10 @@
       polyControls.style.display = 'none';
     });
 
-    // スタイルリアルタイム更新
     document.getElementById('polyColor').addEventListener('change', applyPolygonStyle);
     document.getElementById('polyOpacity').addEventListener('input', applyPolygonStyle);
     document.getElementById('polyShowStroke').addEventListener('change', applyPolygonStyle);
     document.getElementById('polyDashStyle').addEventListener('change', applyPolygonStyle);
-
 
     // 地番検索処理
     async function doAddressSearch() {
@@ -1325,7 +1374,7 @@
         cadRawDataUrl = data.cad.imageData;
         document.getElementById('cadPresetScale').value = data.cad.presetScale || 500;
         document.getElementById('cadDpiSelect').value = data.cad.dpiSelect || 'A4_H';
-        document.getElementById('cadLineThickness').value = data.cad.lineThickness || 5;
+        document.getElementById('cadLineThickness').value = data.cad.lineThickness || 20;
         document.getElementById('cadLineColor').value = data.cad.lineColor || '#000000';
         
         cadBaseWidthMeters = data.cad.baseWidthMeters || 50;
@@ -1346,7 +1395,6 @@
         document.getElementById('resetCad').click();
       }
 
-      // 区画復元
       if (data.polygon && data.polygon.latLngs && data.polygon.latLngs.length > 0) {
         if (polygonLayer) map3.removeLayer(polygonLayer);
         polygonLayer = L.polygon(data.polygon.latLngs).addTo(map3);
@@ -1410,7 +1458,7 @@
     document.getElementById('btnSave').addEventListener('click', () => {
       const stateData = getMapStateData();
       const jsonStr = JSON.stringify(stateData, null, 2);
-      const siteName = document.getElementById('siteNameInput').value.trim() || '地図配置データ';
+      const siteName = document.getElementById('siteNameInput').value.trim() || '案内図データ';
       const fileName = `${siteName}.json`;
 
       const blob = new Blob([jsonStr], { type: 'application/json' });
